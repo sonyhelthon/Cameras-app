@@ -54,14 +54,25 @@ Dicas:
 
 ---
 
-## Usar no celular
+## App Android
 
-- **Em casa (mesmo Wi-Fi):** abra no Chrome o endereço que aparece na janela do `iniciar.bat` (ex.: `http://192.168.100.47:8080`).
-- **Instalar como app:** no Chrome, **⋮ → Adicionar à tela inicial**.
-- **Fora de casa (grátis e seguro):** instale o **Tailscale** (tailscale.com) no computador servidor e no celular, com a mesma conta. Use o endereço `100.x.x.x` que o Tailscale mostra. **Não abra portas no roteador.**
-- **Duas centrais (casa e igreja):** com o Tailscale nos dois computadores, salve os dois endereços na tela inicial (um ícone para cada local).
+1. No celular, abra **github.com/sonyhelthon/cameras-app/releases/tag/app-android** e baixe o **MinhasCameras.apk**.
+2. Toque no arquivo baixado e instale. Se o Android pedir, permita **"instalar apps desconhecidos"** para o navegador.
+3. Abra o app e toque em **+ Adicionar local**:
+   - **Nome:** Casa, Igreja…
+   - **Endereço em casa:** o que aparece em **Ajustes → Este local** no servidor (ex.: `192.168.100.47:8080`).
+   - **Endereço de fora (opcional):** o endereço do Tailscale (veja abaixo).
+   - Toque em **Testar** e depois em **Salvar**.
+4. Toque no local para abrir. O botão **⇄** no topo volta para a lista de locais.
 
----
+Na tela cheia, o vídeo gira para deitado. Use **pinça** ou **dois toques** para dar zoom, e **📷 Foto** para salvar a imagem.
+
+> **Atualizar o app:** baixe o APK novo pelo mesmo link. Se o Android disser que o app é incompatível, desinstale o antigo antes. Os locais precisam ser cadastrados de novo. Para não precisar desinstalar, cadastre uma chave fixa nos *Secrets* do GitHub (`ANDROID_KEYSTORE_BASE64` e `ANDROID_KEYSTORE_PASSWORD`).
+
+Também funciona sem o APK: no Chrome do celular, abra o endereço do servidor e use **⋮ → Adicionar à tela inicial**.
+
+### Fora de casa (grátis e seguro): Tailscale
+Instale o **Tailscale** (tailscale.com) no computador servidor e no celular, com a mesma conta. No app, coloque o endereço `100.x.x.x` do servidor (aparece no app do Tailscale) em **Endereço de fora**. **Não abra portas no roteador.**
 
 ## Espaço no Drive
 
