@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0f1115">
+  <title>Convite · Minhas Câmeras</title>
+  <meta property="og:title" content="Convite para ver as câmeras">
+  <meta property="og:description" content="Toque para abrir no app Minhas Câmeras.">
+  <link rel="icon" href="/icon.svg" type="image/svg+xml">
+  <style>
+    :root { --bg:#0f1115; --panel:#181b22; --line:#262a33; --text:#e8eaf0; --muted:#8b91a0; --accent:#4f8cff; color-scheme: dark; }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100dvh; display: grid; place-items: center; padding: 24px 16px; background: var(--bg); color: var(--text); font: 17px/1.5 system-ui, Roboto, sans-serif; }
+    main { width: min(420px, 100%); display: grid; gap: 16px; text-align: center; justify-items: center; }
+    h1 { font-size: 23px; margin: 0; }
+    p { margin: 0; color: var(--muted); }
+    a.btn { display: block; width: 100%; padding: 18px; border-radius: 16px; text-decoration: none; font-weight: 600; font-size: 19px; }
+    .primary { background: var(--accent); color: #fff; }
+    .secondary { background: var(--panel); border: 1px solid var(--line); color: var(--text); }
+    ol { text-align: left; color: var(--muted); padding-left: 22px; margin: 0; display: grid; gap: 6px; font-size: 15px; }
+    code { color: var(--text); }
+  </style>
+</head>
+<body>
+  <main>
+    <img src="/icon.svg" alt="" width="72" height="72">
+    <h1>Você recebeu um convite para ver câmeras</h1>
+    <p>Abra no app <strong>Minhas Câmeras</strong> e entre com a sua conta para aceitar.</p>
+    <a id="open" class="btn primary" href="#">Abrir no app</a>
+    <a class="btn secondary" href="https://github.com/sonyhelthon/Cameras-app/releases/download/app-android/MinhasCameras.apk">Ainda não tenho o app: baixar</a>
+    <ol>
+      <li>Baixe e instale o app (Android). Se pedir, permita “instalar apps desconhecidos”.</li>
+      <li>Volte aqui (toque no link do WhatsApp de novo) e toque em <strong>Abrir no app</strong>.</li>
+    </ol>
+    <p style="font-size:14px">Código do convite: <code id="code"></code></p>
+  </main>
+  <script>
+    // /c/K7P2Q9 -> code K7P2Q9
+    const code = (location.pathname.split('/c/')[1] || '').replace(/[^A-Za-z0-9]/g, '').slice(0, 20);
+    document.getElementById('code').textContent = code || '—';
+    const fallback = encodeURIComponent(location.href);
+    // Android: opens the app if installed (custom link minhascameras://convite/CODE).
+    document.getElementById('open').href =
+      `intent://convite/${code}#Intent;scheme=minhascameras;package=com.sonyhelthon.minhascameras;S.browser_fallback_url=${fallback};end`;
+  </script>
+</body>
+</html>
