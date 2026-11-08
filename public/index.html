@@ -128,12 +128,21 @@
         <button type="button" id="cam-cancel" class="chip" aria-label="Fechar">✕</button>
       </div>
       <div class="sheet-body">
+        <details id="new-cam-help" class="help">
+          <summary>📶 Câmera nova, que ainda não está no Wi-Fi?</summary>
+          <ol class="small">
+            <li>Ligue a câmera na tomada perto do roteador.</li>
+            <li><span id="brand-setup"></span></li>
+            <li>Use o Wi-Fi de <strong>2,4 GHz</strong> (a maioria dessas câmeras não funciona no 5 GHz) e a <strong>mesma rede</strong> deste computador servidor.</li>
+            <li>Volte aqui e toque em <strong>Procurar câmeras na rede</strong>.</li>
+          </ol>
+          <p class="small muted">O app do fabricante só é necessário nessa primeira vez. Não precisa assinar nenhum plano.</p>
+        </details>
         <div id="discover-box">
           <button type="button" id="discover" class="btn">🔍 Procurar câmeras na rede</button>
           <p id="discover-msg" class="small muted"></p>
           <ul id="discover-list" class="admin-list compact"></ul>
         </div>
-        <label class="field">Nome <input name="name" placeholder="Ex.: Garagem" maxlength="40" required></label>
         <label class="field">Marca / app da câmera <select name="brand" id="brand"></select></label>
         <p id="brand-hint" class="small muted"></p>
         <div id="fields-std">
@@ -159,6 +168,9 @@
           </label>
         </details>
         <div id="test-result" class="test-result" hidden></div>
+        <label class="field" id="name-field">Nome <span class="muted">(pode dar depois de ver a imagem)</span>
+          <input name="name" placeholder="Câmera 1" maxlength="40">
+        </label>
       </div>
       <div class="sheet-foot">
         <button type="button" id="cam-delete" class="btn danger" hidden>Remover</button>

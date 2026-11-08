@@ -115,7 +115,7 @@ app.get('/api/status', (req, res) => {
 
 // ---------- Camera management ----------
 app.get('/api/brands', (req, res) => {
-  res.json(Object.entries(BRANDS).map(([id, b]) => ({ id, label: b.label, hint: b.hint, custom: !!b.custom, ptz: b.ptz, user: b.user })));
+  res.json(Object.entries(BRANDS).map(([id, b]) => ({ id, label: b.label, hint: b.hint, setup: b.setup, custom: !!b.custom, ptz: b.ptz, user: b.user })));
 });
 
 app.get('/api/admin/cameras', (req, res) => {
@@ -147,7 +147,6 @@ function cameraFromBody(body, existing = {}) {
   return c;
 }
 function validateCamera(c) {
-  if (!c.name) throw bad('Dê um nome para a câmera.');
   if (BRANDS[c.brand].custom) {
     if (!/^(rtsp|rtsps|http|https):\/\//i.test(c.main)) throw bad('Informe o endereço RTSP completo (começa com rtsp://).');
   } else if (!/^[a-z0-9.-]+$/i.test(c.host)) throw bad('Informe o IP da câmera (ex.: 192.168.0.50).');
@@ -157,6 +156,13 @@ function validateCamera(c) {
 app.post('/api/admin/cameras', (req, res) => {
   const c = cameraFromBody(req.body || {});
   validateCamera(c);
+  // No name yet (the person names it after seeing the image): "Câmera 1", "Câmera 2"…
+  if (!c.name) {
+    const names = new Set(store.data.cameras.map((x) => x.name));
+    let n = store.data.cameras.length + 1;
+    while (names.has(`Câmera ${n}`)) n++;
+    c.name = `Câmera ${n}`;
+  }
   c.id = store.newCameraId(c.name);
   store.data.cameras.push(c);
   store.save();
@@ -168,6 +174,7 @@ app.put('/api/admin/cameras/:id', (req, res) => {
   const i = store.data.cameras.findIndex((c) => c.id === req.params.id);
   if (i < 0) return res.status(404).json({ error: 'Câmera não encontrada' });
   const c = cameraFromBody(req.body || {}, store.data.cameras[i]);
+  c.name ||= store.data.cameras[i].name;
   validateCamera(c);
   store.data.cameras[i] = c;
   store.save();
@@ -197,7 +204,7 @@ app.post('/api/admin/test', wrap(async (req, res) => {
   const body = req.body || {};
   const existing = store.data.cameras.find((c) => c.id === body.id) || {};
   const c = cameraFromBody(body, existing);
-  validateCamera({ ...c, name: c.name || 'teste' });
+  validateCamera(c);
   await tools.ensure('ffmpeg');
   const cam = resolveCamera({ ...c, id: 'teste' });
   // Avoid competing with the running recorder for the same camera (cheap cameras allow few connections).

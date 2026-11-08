@@ -52,6 +52,7 @@
   function applyBrand(setDefaults) {
     const b = brands.find((x) => x.id === field('brand').value) || brands[0];
     $('#brand-hint').textContent = b.hint || '';
+    $('#brand-setup').textContent = b.setup || '';
     $('#fields-std').hidden = !!b.custom;
     $('#fields-custom').hidden = !b.custom;
     if (setDefaults) {
@@ -66,6 +67,8 @@
     $('#cam-editor-title').textContent = cam ? `Editar ${cam.name}` : 'Adicionar câmera';
     $('#cam-delete').hidden = !cam;
     $('#discover-box').hidden = !!cam;
+    $('#new-cam-help').hidden = !!cam;
+    $('#new-cam-help').open = false;
     $('#discover-list').innerHTML = '';
     say($('#discover-msg'), '');
     $('#test-result').hidden = true;
@@ -102,7 +105,8 @@
     list.innerHTML = '';
     try {
       const found = await api('/api/admin/discover');
-      say($('#discover-msg'), found.length ? 'Toque numa câmera para usar o IP dela:' : 'Nenhuma câmera encontrada. Digite o IP abaixo.');
+      say($('#discover-msg'), found.length ? 'Toque numa câmera para usar o IP dela:' : 'Nenhuma câmera encontrada. Se ela é nova, veja “Câmera nova” acima; ou digite o IP abaixo.');
+      if (!found.length) $('#new-cam-help').open = true;
       for (const f of found) {
         const li = document.createElement('li');
         li.innerHTML = '<div class="grow"><strong></strong><div class="small muted"></div></div>';
@@ -120,7 +124,7 @@
           }
           for (const x of list.children) x.classList.remove('selected');
           li.classList.add('selected');
-          field('name').focus();
+          field('password').focus();
         });
         list.appendChild(li);
       }
@@ -143,6 +147,9 @@
         box.className = 'test-result ok';
         box.innerHTML = '<p>✅ Funcionou! Imagem da câmera:</p><img alt="Imagem da câmera">';
         box.querySelector('img').src = r.image;
+        box.insertAdjacentHTML('beforeend', '<p class="small muted">Agora dê um nome para ela abaixo (ex.: Garagem) e toque em Salvar.</p>');
+        $('#name-field').scrollIntoView({ behavior: 'smooth', block: 'center' });
+        if (!editing) setTimeout(() => field('name').focus({ preventScroll: true }), 400);
         if (field('transport').value === 'auto' && r.transport) field('transport').value = r.transport;
       } else {
         box.className = 'test-result bad';
