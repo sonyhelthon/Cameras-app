@@ -91,6 +91,7 @@
     </div>
   </div>
 
+<script src="build-config.js"></script>
 <script src="vendor/jsQR.js"></script>
 <script>
 'use strict';
@@ -165,7 +166,7 @@ function render() {
   }
 }
 
-async function open(s) {
+async function open(s, tab = '') {
   cancelled = false;
   overlay(`Abrindo ${s.name}…`);
   const url = await reachable(s.urls);
@@ -178,7 +179,8 @@ async function open(s) {
     return;
   }
   localStorage.setItem('ultimo', s.id);
-  location.href = s.key ? `${url}/api/auth/device?k=${encodeURIComponent(s.key)}` : `${url}/?app=1`;
+  const extra = `${pushToken ? `&push=${encodeURIComponent(pushToken)}` : ''}${tab ? `&tab=${tab}` : ''}`;
+  location.href = s.key ? `${url}/api/auth/device?k=${encodeURIComponent(s.key)}${extra}` : `${url}/?app=1${tab ? `&tab=${tab}` : ''}`;
 }
 
 // ---------- Invite QR code ----------
@@ -254,7 +256,7 @@ async function handleInvite(text) {
     const r = await fetch(`${url}/api/invite/redeem`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ code: inv.c, device: deviceName() }),
+      body: JSON.stringify({ code: inv.c, device: deviceName(), push: pushToken }),
     });
     const j = await r.json();
     if (!r.ok) return overlay(j.error || 'Convite não aceito.');
@@ -318,10 +320,38 @@ $('#form').addEventListener('submit', (e) => {
   save(); closeForm(); render();
 });
 
+// ---------- Push notifications (alerts) ----------
+let pushToken = localStorage.getItem('pushToken') || '';
+let openedFromPush = false;
+const Push = window.PUSH_ENABLED && window.Capacitor?.isNativePlatform?.() ? window.Capacitor.Plugins.PushNotifications : null;
+async function setupPush() {
+  if (!Push) return;
+  try {
+    await Push.createChannel({ id: 'alertas', name: 'Alertas de pessoas', importance: 5, visibility: 1, sound: 'default', vibration: true });
+    Push.addListener('registration', (t) => {
+      pushToken = t.value;
+      localStorage.setItem('pushToken', pushToken);
+    });
+    // Tapping a notification opens the place it came from, on the Alertas tab.
+    Push.addListener('pushNotificationActionPerformed', (a) => {
+      const site = sites.find((s) => s.name === a.notification?.data?.site);
+      if (site) {
+        openedFromPush = true;
+        open(site, 'alerts');
+      }
+    });
+    let perm = await Push.checkPermissions();
+    if (perm.receive !== 'granted') perm = await Push.requestPermissions();
+    if (perm.receive === 'granted') await Push.register();
+  } catch { /* no notifications on this phone */ }
+}
+
 render();
-// Opens straight into the last place used (unless coming back with "⇄").
-const last = sites.find((s) => s.id === localStorage.getItem('ultimo'));
-if (!new URLSearchParams(location.search).has('locais') && last) open(last);
+setupPush().finally(() => {
+  // Opens straight into the last place used (unless coming back with "⇄", or from a notification).
+  const last = sites.find((s) => s.id === localStorage.getItem('ultimo'));
+  if (!openedFromPush && !new URLSearchParams(location.search).has('locais') && last) open(last);
+});
 </script>
 </body>
 </html>

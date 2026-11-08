@@ -74,6 +74,31 @@ Também funciona sem o APK: no Chrome do celular, abra o endereço do servidor e
 ### Fora de casa (grátis e seguro): Tailscale
 Instale o **Tailscale** (tailscale.com) no computador servidor e no celular, com a mesma conta. No app, coloque o endereço `100.x.x.x` do servidor (aparece no app do Tailscale) em **Endereço de fora**. **Não abra portas no roteador.**
 
+## Alertas de pessoas
+
+O computador servidor vigia cada câmera (em qualidade baixa, 2 imagens por segundo). Quando algo se mexe, uma inteligência artificial **que roda no próprio computador** confere se é **uma pessoa**. Vento, chuva, sombras e animais não geram alerta. Quando é uma pessoa:
+- a foto, com um quadro vermelho em volta da pessoa, aparece na aba **🔔 Alertas**, e o botão **▶ Ver gravação** abre o vídeo daquele momento;
+- os celulares com o app recebem uma **notificação** (depois de configurar o Firebase, abaixo).
+
+Em **Ajustes → Alertas de pessoas** você escolhe a sensibilidade, o tempo entre alertas e os horários (ex.: só das 22:00 às 06:00). Para desligar numa câmera: **Câmeras → Editar → "Avisar quando aparecer pessoa"**.
+
+Na primeira vez, o app baixa o modelo de detecção (3,6 MB). Os alertas ficam guardados por 30 dias.
+
+### Notificações no celular (Firebase, grátis; fazer uma vez)
+1. Entre em **console.firebase.google.com** com sua conta Google → **Criar projeto** (nome: "Minhas Cameras"; pode desativar o Google Analytics).
+2. No projeto, clique no ícone do **Android** para adicionar um app:
+   - **Nome do pacote:** `com.sonyhelthon.minhascameras`
+   - Clique em **Registrar app** e **baixe o `google-services.json`**. Pode pular os outros passos.
+3. No GitHub: **github.com/sonyhelthon/cameras-app → Settings → Secrets and variables → Actions → New repository secret**
+   - **Name:** `GOOGLE_SERVICES_JSON`
+   - **Secret:** cole todo o conteúdo do `google-services.json` (abra no Bloco de Notas, Ctrl+A, Ctrl+C).
+4. No GitHub: **Actions → App Android → Run workflow**. Em uns 3 minutos sai um APK novo com notificações. Instale no celular (desinstale o antigo antes).
+5. No Firebase: **⚙ Configurações do projeto → Contas de serviço → Gerar nova chave privada**. Isso baixa um arquivo `.json`.
+6. No app, no computador servidor: **Ajustes → Alertas de pessoas → Arquivo do Firebase**, e escolha esse arquivo. Faça isso em cada local (casa, igreja). **Guarde esse arquivo com cuidado e não compartilhe**: ele permite enviar notificações em nome do seu projeto.
+7. Abra o app no celular (ele pede permissão para notificações: toque em **Permitir**) e, no servidor, clique em **Enviar notificação de teste**.
+
+A foto aparece dentro da notificação só quando o servidor tem **endereço de fora** (https). Sem ele, a notificação chega com o texto, e a foto aparece ao tocar nela, dentro do app (no Wi-Fi do local).
+
 ## Espaço no Drive
 
 As câmeras Yoosee/Jortan usam H.265, que ocupa pouco espaço: cerca de **5 GB por câmera por dia** em alta qualidade, o que depende do movimento na imagem. Em **Ajustes → Google Drive**, escolha quantos dias manter. O app apaga as gravações mais antigas sozinho e mostra o espaço livre.
@@ -105,5 +130,7 @@ npm install && npm start
 - `src/live.js`: ao vivo (converte para H.264 enquanto alguém assiste)
 - `src/drive.js`: Google Drive (conectar, enviar, limpar, assistir)
 - `src/tools.js`: encontra/baixa o ffmpeg e o rclone
+- `src/watcher.js`, `src/detector.js`: vigia as câmeras e detecta pessoas
+- `src/events.js`, `src/push.js`: alertas (fotos) e notificações (Firebase)
 - `public/`: o app (web/PWA)
 - `data/app.json`: câmeras e ajustes salvos (criado sozinho)

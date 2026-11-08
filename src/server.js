@@ -13,6 +13,12 @@ import { Drive, cleanFolder } from './drive.js';
 import { Ptz } from './ptz.js';
 import { createAuth, hashPassword } from './auth.js';
 import { discover } from './discover.js';
+import crypto from 'node:crypto';
+import fs from 'node:fs';
+import { PersonDetector } from './detector.js';
+import { PersonWatcher, SENSITIVITY } from './watcher.js';
+import { Events, EVENT_ID_RE } from './events.js';
+import { Push } from './push.js';
 import { testCamera, friendlyError } from './probe.js';
 
 const require = createRequire(import.meta.url);
@@ -38,9 +44,57 @@ const drive = new Drive(ctx);
 const ptz = new Ptz((id) => camById.get(id));
 let ffmpegReady = false;
 
+// ---------- Person alerts ----------
+const detector = new PersonDetector();
+const events = new Events(ctx);
+const push = new Push(base.dataDir);
+const watchers = new Map();
+const secret = () => fs.readFileSync(path.join(base.dataDir, '.secret'), 'utf8').trim();
+const imageSig = (id) => crypto.createHmac('sha256', secret()).update(`ev:${id}`).digest('hex').slice(0, 32);
+
+/** Alerts can be limited to a time window, e.g. 22:00 to 06:00. */
+function inSchedule(a) {
+  if (!a.from || !a.to) return true;
+  const now = new Date();
+  const m = now.getHours() * 60 + now.getMinutes();
+  const [fh, fm] = a.from.split(':').map(Number);
+  const [th, tm] = a.to.split(':').map(Number);
+  const from = fh * 60 + fm;
+  const to = th * 60 + tm;
+  return from <= to ? m >= from && m < to : m >= from || m < to;
+}
+
+async function onPerson(cam, rgb, info) {
+  if (!inSchedule(store.settings.alerts)) return;
+  let ev;
+  try {
+    ev = await events.add(cam, rgb, info);
+  } catch (e) {
+    console.error('[alertas] não salvou a foto:', e.message);
+    return;
+  }
+  const site = store.settings.site;
+  console.log(`[alertas] pessoa em ${cam.name}`);
+  const users = store.data.users.filter((u) => u.pushToken);
+  // The photo goes in the notification only when the server is reachable from outside (https).
+  const image = /^https:/.test(site.remoteUrl) ? `${site.remoteUrl}/events/img/${ev.id}.jpg?s=${imageSig(ev.id)}` : undefined;
+  const gone = await push.send(users.map((u) => u.pushToken), {
+    title: `Pessoa em ${cam.name}`,
+    body: `${site.name} · ${new Date(ev.ts).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`,
+    image,
+    data: { site: site.name, ev: ev.id, cam: cam.id },
+  });
+  if (gone.length) {
+    for (const u of store.data.users) if (gone.includes(u.pushToken)) delete u.pushToken;
+    store.save();
+  }
+}
+
 function stopCamera(id) {
   recorders.get(id)?.stop();
   recorders.delete(id);
+  watchers.get(id)?.stop();
+  watchers.delete(id);
   live.stopCam(id);
   ptz.forget(id);
 }
@@ -73,12 +127,36 @@ function applyCameras({ restartAll = false } = {}) {
       }
     }
   }
+  const alertsOn = ffmpegReady && store.settings.alerts.enabled;
+  for (const [id, w] of watchers) {
+    if (!alertsOn || !camById.get(id)?.alerts) {
+      w.stop();
+      watchers.delete(id);
+    }
+  }
+  if (alertsOn) {
+    for (const cam of camById.values()) {
+      if (cam.alerts && !watchers.has(cam.id)) {
+        const w = new PersonWatcher(ctx, cam, detector, (rgb, info) => onPerson(cam, rgb, info));
+        w.start();
+        watchers.set(cam.id, w);
+      }
+    }
+    detector.load().catch((e) => console.error(e.message));
+  }
 }
 
 // ---------- HTTP ----------
 const auth = createAuth(base.dataDir, store);
 const app = express();
 app.use(express.json({ limit: '20kb' }));
+// Alert photos with a valid signature open without login (used by the notification).
+app.get('/events/img/:file', (req, res, next) => {
+  const id = req.params.file.replace(/\.jpg$/, '');
+  const s = String(req.query.s || '');
+  if (!EVENT_ID_RE.test(id) || !s || s !== imageSig(id)) return next();
+  res.sendFile(events.imagePath(id), (err) => err && !res.headersSent && res.status(404).end());
+});
 app.use((req, res, next) => auth.middleware(req, res, next));
 
 const wrap = (fn) => (req, res) =>
@@ -128,7 +206,8 @@ app.get('/api/cameras', (req, res) => {
   res.json(
     [...camById.values()].map((c) => {
       const st = recorders.get(c.id)?.status() || { recording: false, lastFile: null, error: '' };
-      return { id: c.id, name: c.name, ptz: !!c.ptz, ...st, error: st.error ? friendlyError(st.error) : '' };
+      const w = watchers.get(c.id)?.status();
+      return { id: c.id, name: c.name, ptz: !!c.ptz, ...st, error: st.error ? friendlyError(st.error) : '', alerts: !!w, watching: !!w?.watching };
     }),
   );
 });
@@ -152,7 +231,7 @@ app.get('/api/admin/cameras', (req, res) => {
   res.json(store.data.cameras.map(({ password, ...c }) => ({ ...c, hasPassword: !!password })));
 });
 
-const CAM_FIELDS = ['name', 'brand', 'host', 'user', 'password', 'ptz', 'main', 'sub', 'rtspPort', 'onvifPort', 'transport'];
+const CAM_FIELDS = ['name', 'brand', 'host', 'user', 'password', 'ptz', 'main', 'sub', 'rtspPort', 'onvifPort', 'transport', 'alerts'];
 function cameraFromBody(body, existing = {}) {
   const c = { ...existing };
   for (const k of CAM_FIELDS) if (body[k] !== undefined) c[k] = body[k];
@@ -162,6 +241,7 @@ function cameraFromBody(body, existing = {}) {
   c.brand = BRANDS[c.brand] ? c.brand : 'generic';
   c.host = String(c.host || '').trim();
   c.ptz = !!c.ptz;
+  c.alerts = c.alerts !== false;
   for (const k of ['rtspPort', 'onvifPort']) {
     if (c[k] === '' || c[k] == null) delete c[k];
     else c[k] = Number(c[k]);
@@ -265,7 +345,11 @@ app.get('/api/settings', (req, res) => {
     .flat()
     .filter((i) => i && i.family === 'IPv4' && !i.internal && /^(192\.168|10\.|100\.)/.test(i.address))
     .map((i) => `${i.address}${base.port === 80 ? '' : `:${base.port}`}`);
-  res.json({ settings: store.settings, drive: drive.status(), tools: tools.status, toolErrors: tools.errors, platform: process.platform, addresses });
+  res.json({
+    settings: store.settings, drive: drive.status(), tools: tools.status, toolErrors: tools.errors, platform: process.platform, addresses,
+    push: { ...push.info(), devices: store.data.users.filter((u) => u.pushToken).length },
+    detector: { status: detector.status, error: detector.error },
+  });
 });
 
 app.put('/api/settings', (req, res) => {
@@ -318,10 +402,32 @@ app.put('/api/settings', (req, res) => {
       patch.drive.bwlimit = String(b.drive.bwlimit || '');
     }
   }
+  if (b.alerts) {
+    const a = b.alerts;
+    patch.alerts = {};
+    if (a.enabled !== undefined) patch.alerts.enabled = !!a.enabled;
+    if (a.sensitivity !== undefined) {
+      if (!SENSITIVITY[a.sensitivity]) throw bad('Sensibilidade inválida.');
+      patch.alerts.sensitivity = a.sensitivity;
+    }
+    if (a.cooldownSec !== undefined) {
+      const c = Number(a.cooldownSec);
+      if (!(c >= 10 && c <= 3600)) throw bad('Intervalo entre alertas: de 10 a 3600 segundos.');
+      patch.alerts.cooldownSec = c;
+    }
+    for (const k of ['from', 'to']) {
+      if (a[k] !== undefined) {
+        if (a[k] && !/^([01]\d|2[0-3]):[0-5]\d$/.test(a[k])) throw bad('Horário inválido (use 22:00).');
+        patch.alerts[k] = a[k];
+      }
+    }
+  }
+  const alertsBefore = s.alerts.enabled;
   const recBefore = JSON.stringify(s.recording);
   const folderBefore = s.drive.folder;
   store.updateSettings(patch);
   if (JSON.stringify(store.settings.recording) !== recBefore) applyCameras({ restartAll: true });
+  else if (store.settings.alerts.enabled !== alertsBefore) applyCameras();
   if (store.settings.drive.folder !== folderBefore) drive.reset();
   res.json({ ok: true, settings: store.settings });
 });
@@ -343,6 +449,44 @@ app.post('/api/drive/upload-now', (req, res) => {
 app.post('/api/ptz/:cam', wrap(async (req, res) => {
   await ptz.move(req.params.cam, req.body?.dir, Number(req.body?.ms) || 600);
   res.json({ ok: true });
+}));
+
+// ---------- Alerts ----------
+app.get('/api/events', (req, res) => {
+  const before = Number(req.query.before) || undefined;
+  const cam = /^[a-z0-9_-]+$/i.test(String(req.query.cam || '')) ? req.query.cam : undefined;
+  res.json(events.list({ cam, before, limit: Math.min(Number(req.query.limit) || 60, 200) }));
+});
+app.get('/events/img/:file', (req, res) => {
+  const id = req.params.file.replace(/\.jpg$/, '');
+  if (!EVENT_ID_RE.test(id)) return res.status(404).end();
+  res.set('Cache-Control', 'private, max-age=86400');
+  res.sendFile(events.imagePath(id), (err) => err && !res.headersSent && res.status(404).end());
+});
+app.delete('/api/events/:id', (req, res) => {
+  if (req.user.role !== 'admin') return res.status(403).json({ error: 'Só o administrador pode apagar alertas.' });
+  events.remove(req.params.id);
+  res.json({ ok: true });
+});
+app.post('/api/push/account', express.text({ type: '*/*', limit: '20kb' }), (req, res) => {
+  push.setAccount(typeof req.body === 'string' ? req.body : JSON.stringify(req.body));
+  res.json({ ok: true, ...push.info() });
+});
+app.delete('/api/push/account', (req, res) => {
+  push.clear();
+  res.json({ ok: true });
+});
+app.post('/api/push/test', wrap(async (req, res) => {
+  const users = store.data.users.filter((u) => u.pushToken);
+  if (!push.configured) return res.status(400).json({ error: 'Envie primeiro o arquivo do Firebase.' });
+  if (!users.length) return res.status(400).json({ error: 'Nenhum celular com o app instalado e aberto ainda.' });
+  await push.send(users.map((u) => u.pushToken), {
+    title: 'Teste de alerta',
+    body: `${store.settings.site.name}: as notificações estão funcionando.`,
+    data: { site: store.settings.site.name },
+  });
+  if (push.info().error) return res.status(502).json({ error: push.info().error });
+  res.json({ ok: true, sent: users.length });
 }));
 
 // ---------- Live (HLS) ----------

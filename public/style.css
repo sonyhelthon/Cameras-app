@@ -192,3 +192,18 @@ html, body { overflow-x: hidden; }
 .invite-qr img { width: min(320px, 80vw); background: #fff; border-radius: 12px; padding: 6px; }
 .invite-qr ol { margin: 0; padding-left: 20px; display: grid; gap: 4px; justify-self: stretch; }
 .admin-list li > span:first-child { font-size: 18px; }
+
+/* Alerts */
+.tab-badge { display: inline-block; min-width: 18px; padding: 0 5px; margin-left: 4px; border-radius: 999px; background: var(--bad); color: #fff; font-size: 11px; line-height: 18px; text-align: center; }
+.alert-grid { display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr)); }
+.alert-card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; cursor: pointer; padding: 0; text-align: left; }
+.alert-card img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; display: block; background: #000; }
+.alert-card .meta { padding: 8px 10px; display: flex; justify-content: space-between; gap: 8px; font-size: 14px; }
+.alert-card.new { border-color: var(--bad); }
+.alert-day { grid-column: 1 / -1; color: var(--muted); font-size: 13px; margin: 6px 0 0; }
+.alert-big { width: 100%; border-radius: 10px; display: block; }
+.sep { border: 0; border-top: 1px solid var(--line); margin: 4px 0; width: 100%; }
+.h3 { font-size: 15px; margin: 0; }
+.row .grow { flex: 1; min-width: 120px; }
+#alert-more { margin: 12px auto 0; display: block; }
+@media (max-width: 520px) { .tabs button { padding: 6px 4px; font-size: 13px; } }

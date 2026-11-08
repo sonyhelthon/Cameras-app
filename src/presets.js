@@ -72,6 +72,7 @@ export function resolveCamera(c) {
     onvifPort: Number(c.onvifPort) || preset.onvifPort,
     ptz: c.ptz ?? preset.ptz,
     transport: c.transport || 'auto',
+    alerts: c.alerts !== false,
     inputArgs: c.inputArgs || [],
   };
   if (preset.custom) {

@@ -11,7 +11,7 @@ const PUBLIC = new Set([
 ]);
 // Only the administrator can change things; "Só ver" users can watch, use the arrows and recordings.
 const ADMIN_ONLY = [
-  /^\/api\/admin\//, /^\/api\/settings/, /^\/api\/drive\//, /^\/api\/password/, /^\/api\/users/, /^\/api\/invites/,
+  /^\/api\/admin\//, /^\/api\/settings/, /^\/api\/drive\//, /^\/api\/password/, /^\/api\/users/, /^\/api\/invites/, /^\/api\/push/,
 ];
 export const ROLES = { admin: 'Administrador', viewer: 'Só ver' };
 const INVITE_HOURS = 24;
@@ -168,6 +168,7 @@ export function createAuth(dataDir, store) {
         name: inv.name,
         role: inv.role,
         device: String(req.body?.device || '').slice(0, 60),
+        pushToken: String(req.body?.push || '').slice(0, 400) || undefined,
         keyHash: sha(key),
         created: Date.now(),
         lastSeen: Date.now(),
@@ -184,15 +185,19 @@ export function createAuth(dataDir, store) {
       const user = key && store.data.users.find((u) => u.keyHash === sha(key));
       if (!user) return res.redirect('/login.html?app=1&removido=1');
       user.lastSeen = Date.now();
+      // The phone app sends its notification address every time it opens.
+      const push = String(req.query.push || '').slice(0, 400);
+      if (push) user.pushToken = push;
       store.save();
       setSession(res, user.id);
-      res.redirect('/?app=1');
+      const tab = /^[a-z]+$/.test(String(req.query.tab || '')) ? `&tab=${req.query.tab}` : '';
+      res.redirect(`/?app=1${tab}`);
     },
 
     listPeople() {
       cleanInvites();
       return {
-        users: store.data.users.map(({ keyHash, ...u }) => ({ ...u, roleLabel: ROLES[u.role] })),
+        users: store.data.users.map(({ keyHash, pushToken, ...u }) => ({ ...u, push: !!pushToken, roleLabel: ROLES[u.role] })),
         invites: store.data.invites.map(({ codeHash, ...i }) => ({ ...i, roleLabel: ROLES[i.role] })),
       };
     },

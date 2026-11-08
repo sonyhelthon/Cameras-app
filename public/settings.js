@@ -79,6 +79,7 @@
     if (cam) {
       field('user').value = cam.user ?? '';
       field('ptz').checked = !!cam.ptz;
+      field('alerts').checked = cam.alerts !== false;
       field('transport').value = cam.transport || 'auto';
     }
     $('#cam-password').placeholder = cam?.hasPassword ? '(sem mudança)' : '';
@@ -89,6 +90,7 @@
     const d = {};
     for (const k of ['name', 'brand', 'host', 'user', 'password', 'main', 'sub', 'rtspPort', 'onvifPort', 'transport']) d[k] = field(k).value.trim();
     d.ptz = field('ptz').checked;
+    d.alerts = field('alerts').checked;
     if (editing) d.id = editing.id;
     return d;
   }
@@ -190,7 +192,19 @@
 
   // ---------- Settings ----------
   async function loadSettings() {
-    const { settings: s, drive, tools, toolErrors, addresses } = await api('/api/settings');
+    const { settings: s, drive, tools, toolErrors, addresses, push, detector } = await api('/api/settings');
+    $('#al-enabled').checked = s.alerts.enabled;
+    $('#al-sens').value = s.alerts.sensitivity;
+    $('#al-cool').value = s.alerts.cooldownSec;
+    $('#al-from').value = s.alerts.from || '';
+    $('#al-to').value = s.alerts.to || '';
+    const db = $('#det-badge');
+    db.textContent = { ok: 'ativo', carregando: 'preparando…', erro: 'erro', parado: s.alerts.enabled ? 'iniciando…' : 'desligado' }[detector.status] || detector.status;
+    db.className = `badge ${detector.status === 'ok' ? 'ok' : detector.status === 'erro' ? 'bad' : ''}`;
+    if (detector.error) say($('#al-msg'), detector.error, false);
+    $('#push-status').textContent = push.configured
+      ? `Firebase configurado (${push.project}). Celulares que vão receber: ${push.devices}.${push.error ? ` Último erro: ${push.error}` : ''}`
+      : 'Para receber notificações no celular, envie o arquivo do Firebase (veja o passo a passo no README). Sem isso, os alertas aparecem só na aba 🔔 Alertas.';
     $('#site-input').value = s.site.name;
     $('#site-remote').value = s.site.remoteUrl || '';
     $('#site-addr').textContent = (addresses || []).join('  ou  ') || location.host;
@@ -271,6 +285,41 @@
     }
   });
 
+  $('#al-save').addEventListener('click', () =>
+    saveSettings(
+      {
+        alerts: {
+          enabled: $('#al-enabled').checked,
+          sensitivity: $('#al-sens').value,
+          cooldownSec: Number($('#al-cool').value),
+          from: $('#al-from').value,
+          to: $('#al-to').value,
+        },
+      },
+      $('#al-msg'),
+    ).then(() => setTimeout(loadSettings, 1500)),
+  );
+  $('#push-file').addEventListener('change', async (e) => {
+    const f = e.target.files[0];
+    if (!f) return;
+    try {
+      await api('/api/push/account', { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: await f.text() });
+      say($('#push-msg'), 'Arquivo do Firebase salvo ✓', true);
+      loadSettings();
+    } catch (err) {
+      say($('#push-msg'), err.message, false);
+    } finally {
+      e.target.value = '';
+    }
+  });
+  $('#push-test').addEventListener('click', async () => {
+    try {
+      const r = await api('/api/push/test', { method: 'POST' });
+      say($('#push-msg'), `Enviado para ${r.sent} celular(es) ✓`, true);
+    } catch (err) {
+      say($('#push-msg'), err.message, false);
+    }
+  });
   $('#rec-save').addEventListener('click', () =>
     saveSettings(
       {

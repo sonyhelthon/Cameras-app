@@ -1,16 +1,14 @@
 @echo off
 title Minhas Cameras (servidor)
 cd /d "%~dp0"
-where node >nul 2>nul
+where node >/dev/null 2>nul
 if errorlevel 1 (
   echo O Node.js nao esta instalado. Baixe em https://nodejs.org (versao LTS^), instale e abra este arquivo de novo.
   pause
   exit /b 1
 )
-if not exist node_modules (
-  echo Instalando dependencias, aguarde...
-  call npm install --omit=dev
-)
+echo Verificando dependencias (na primeira vez ou depois de atualizar pode demorar alguns minutos)...
+call npm install --omit=dev --no-audit --no-fund
 :loop
 node src\server.js
 echo O servidor parou. Reiniciando em 5 segundos...

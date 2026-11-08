@@ -5,6 +5,7 @@ export const DEFAULT_SETTINGS = {
   site: { name: 'Casa', remoteUrl: '' },
   recording: { enabled: true, stream: 'main', segmentMinutes: 10, audio: true },
   local: { retentionHours: 48 },
+  alerts: { enabled: true, sensitivity: 'media', cooldownSec: 60, from: '', to: '' },
   drive: { enabled: false, remoteName: 'gdrive', folder: 'Cameras', retentionDays: 45, uploadEveryMinutes: 5, bwlimit: '' },
 };
 

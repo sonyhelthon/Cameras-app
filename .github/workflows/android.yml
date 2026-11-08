@@ -33,9 +33,18 @@ jobs:
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
         run: |
           npm ci
+          # Push notifications: only when the Firebase file is in the repository secrets.
+          if [ -n "$GOOGLE_SERVICES_JSON" ]; then
+            printf 'window.PUSH_ENABLED = true;\n' > www/build-config.js
+            echo "Notificações push: ativadas"
+          else
+            echo "Notificações push: desativadas (falta o secret GOOGLE_SERVICES_JSON)"
+          fi
           npx cap add android
+          if [ -n "$GOOGLE_SERVICES_JSON" ]; then printf '%s' "$GOOGLE_SERVICES_JSON" > android/app/google-services.json; fi
           node scripts/patch-android.mjs
           npx capacitor-assets generate --android
           npx cap sync android

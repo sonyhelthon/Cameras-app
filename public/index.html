@@ -16,6 +16,7 @@
     <nav class="tabs" role="tablist">
       <button role="tab" data-tab="live" aria-selected="true">Ao vivo</button>
       <button role="tab" data-tab="recs" aria-selected="false">Gravações</button>
+      <button role="tab" data-tab="alerts" aria-selected="false">🔔 Alertas<span id="alert-badge" class="tab-badge" hidden></span></button>
       <button role="tab" data-tab="settings" aria-selected="false" aria-label="Ajustes">⚙ Ajustes</button>
     </nav>
     <span id="drive-status" class="pill" title="Google Drive"></span>
@@ -34,6 +35,15 @@
       <video id="rec-player" class="rec-player" controls playsinline hidden></video>
       <p id="rec-info" class="muted"></p>
       <ul id="rec-list" class="rec-list"></ul>
+    </section>
+
+    <section id="tab-alerts" class="tab" hidden>
+      <div class="rec-controls">
+        <select id="alert-cam" aria-label="Câmera"><option value="">Todas as câmeras</option></select>
+      </div>
+      <p id="alert-info" class="muted"></p>
+      <div id="alert-list" class="alert-grid"></div>
+      <button id="alert-more" class="btn" hidden>Mostrar mais antigos</button>
     </section>
 
     <section id="tab-settings" class="tab settings" hidden>
@@ -89,6 +99,38 @@
           <button id="drive-upload" class="btn">Enviar agora</button>
         </div>
         <p id="drive-msg" class="small"></p>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><h2>Alertas de pessoas</h2><span id="det-badge" class="badge"></span></div>
+        <label class="switch"><input id="al-enabled" type="checkbox"> Avisar quando aparecer uma pessoa</label>
+        <label class="field">Sensibilidade
+          <select id="al-sens">
+            <option value="alta">Alta (avisa mais, pode ter alarme falso)</option>
+            <option value="media">Média (recomendado)</option>
+            <option value="baixa">Baixa (só quando tiver certeza)</option>
+          </select>
+        </label>
+        <label class="field">Não repetir o alerta da mesma câmera por (segundos)
+          <input id="al-cool" type="number" min="10" max="3600">
+        </label>
+        <div class="row">
+          <label class="field grow">Só avisar a partir de <input id="al-from" type="time"></label>
+          <label class="field grow">até <input id="al-to" type="time"></label>
+        </div>
+        <p class="small muted">Deixe os horários vazios para avisar o dia todo. Para não avisar numa câmera, desmarque em Câmeras → Editar.</p>
+        <button id="al-save" class="btn primary">Salvar</button>
+        <p id="al-msg" class="small"></p>
+        <hr class="sep">
+        <h3 class="h3">Notificação no celular</h3>
+        <p id="push-status" class="small muted"></p>
+        <label class="field">Arquivo do Firebase (conta de serviço .json)
+          <input id="push-file" type="file" accept=".json,application/json">
+        </label>
+        <div class="row">
+          <button id="push-test" class="btn">Enviar notificação de teste</button>
+        </div>
+        <p id="push-msg" class="small"></p>
       </div>
 
       <div class="card">
@@ -181,6 +223,7 @@
         </div>
         <label class="field">Senha <input name="password" type="password" autocomplete="new-password" id="cam-password"></label>
         <label class="switch"><input name="ptz" type="checkbox"> Tem motor (gira pelo app)</label>
+        <label class="switch"><input name="alerts" type="checkbox" checked> Avisar quando aparecer pessoa</label>
         <details>
           <summary class="small">Avançado</summary>
           <label class="field">Porta RTSP <input name="rtspPort" type="number" placeholder="554"></label>
@@ -204,6 +247,21 @@
         <button type="submit" id="cam-save" class="btn primary">Salvar</button>
       </div>
     </form>
+  </dialog>
+
+  <dialog id="alert-dialog" class="sheet">
+    <div class="sheet-head">
+      <strong id="alert-title"></strong>
+      <button type="button" id="alert-close" class="chip" aria-label="Fechar">✕</button>
+    </div>
+    <div class="sheet-body">
+      <img id="alert-img" class="alert-big" alt="Foto do alerta">
+      <p id="alert-when" class="muted small"></p>
+    </div>
+    <div class="sheet-foot">
+      <button type="button" id="alert-del" class="btn danger">Apagar</button>
+      <button type="button" id="alert-rec" class="btn primary">▶ Ver gravação</button>
+    </div>
   </dialog>
 
   <dialog id="invite-dialog" class="sheet">
@@ -242,5 +300,6 @@
   <script src="/vendor/hls.min.js"></script>
   <script src="/app.js"></script>
   <script src="/settings.js"></script>
+  <script src="/alerts.js"></script>
 </body>
 </html>

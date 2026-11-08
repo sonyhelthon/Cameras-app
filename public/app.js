@@ -315,10 +315,40 @@ function showTab(tab) {
   $('#tab-live').hidden = tab !== 'live';
   $('#tab-recs').hidden = tab !== 'recs';
   $('#tab-settings').hidden = tab !== 'settings';
+  $('#tab-alerts').hidden = tab !== 'alerts';
   if (tab === 'live') startGrid();
   else stopGrid();
   if (tab === 'recs') loadRecordings();
   if (tab === 'settings') window.openSettings().catch((e) => alert(e.message));
+  if (tab === 'alerts') window.openAlerts(cameras).catch(() => {});
+}
+
+/** Opens the recording that contains the moment ts (used by "Ver gravação" in an alert). */
+async function playRecordingAt(camId, ts) {
+  const d = new Date(ts);
+  const pad = (n) => String(n).padStart(2, '0');
+  $('#rec-cam').value = camId;
+  $('#rec-day').value = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  showTab('recs');
+  const { items } = await api(`/api/recordings/${camId}`);
+  const start = (name) => {
+    const [y, mo, da, h, mi, se] = name.slice(0, 19).split(/[-_]/).map(Number);
+    return new Date(y, mo - 1, da, h, mi, se).getTime();
+  };
+  // Files are newest first: the first one that started before the alert contains it.
+  const it = items.find((i) => start(i.name) <= ts);
+  if (!it) {
+    $('#rec-info').textContent = 'A gravação desse momento ainda não está disponível.';
+    return;
+  }
+  const p = $('#rec-player');
+  p.hidden = false;
+  p.src = `/rec/${it.source}/${camId}/${it.name}`;
+  p.addEventListener('loadedmetadata', () => {
+    p.currentTime = Math.max(0, (ts - start(it.name)) / 1000 - 5);
+    p.play().catch(() => {});
+  }, { once: true });
+  p.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 for (const b of document.querySelectorAll('.tabs button')) b.addEventListener('click', () => showTab(b.dataset.tab));
 $('#rec-cam').addEventListener('change', loadRecordings);
@@ -356,10 +386,12 @@ try {
 let me = { role: 'admin' };
 (async () => {
   me = await api('/api/me').catch(() => me);
+  const startTab = new URLSearchParams(location.search).get('tab');
   // "Só ver": no Ajustes tab.
   if (me.role !== 'admin') document.querySelector('[data-tab=settings]').hidden = true;
   $('#rec-day').value = today();
   await reloadCameras();
+  if (startTab === 'alerts') showTab('alerts');
   refreshStatus();
   setInterval(refreshStatus, 30_000);
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});

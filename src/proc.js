@@ -28,8 +28,9 @@ export class Supervisor {
     this.lastArgs = args;
     this.startedAt = Date.now();
     const bin = typeof this.bin === 'function' ? this.bin() : this.bin;
-    const child = spawn(bin, args, { stdio: ['ignore', 'ignore', 'pipe'], windowsHide: true });
+    const child = spawn(bin, args, { stdio: ['ignore', this.stdout ? 'pipe' : 'ignore', 'pipe'], windowsHide: true });
     this.child = child;
+    if (this.stdout) child.stdout.on('data', (d) => this.onStdout?.(d));
     let tail = '';
     child.stderr.on('data', (d) => {
       tail = (tail + d.toString()).slice(-2000);
