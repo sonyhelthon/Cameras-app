@@ -104,7 +104,7 @@ async function refreshStatus() {
     const st = await api('/api/status');
     if (st.site) {
       $('#site-name').textContent = st.site;
-      document.title = `${st.site} · Câmeras`;
+      document.title = `${st.site} · SHCAM`;
     }
     const el = $('#drive-status');
     if (st.tools.ffmpeg === 'baixando') {

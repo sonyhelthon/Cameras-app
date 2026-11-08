@@ -1,6 +1,6 @@
 {
-  "name": "Minhas Câmeras",
-  "short_name": "Câmeras",
+  "name": "SHCAM",
+  "short_name": "SHCAM",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0f1115",

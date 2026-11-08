@@ -54,7 +54,7 @@ jobs:
         run: |
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon
-          cp app/build/outputs/apk/debug/app-debug.apk ../MinhasCameras.apk
+          cp app/build/outputs/apk/debug/app-debug.apk ../SHCAM.apk
         env:
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
 
@@ -64,8 +64,8 @@ jobs:
           tag_name: app-android
           name: App Android
           make_latest: true
-          files: mobile/MinhasCameras.apk
+          files: mobile/SHCAM.apk
           body: |
-            Baixe **MinhasCameras.apk** abaixo pelo celular Android e instale
+            Baixe **SHCAM.apk** abaixo pelo celular Android e instale
             (permita "instalar apps desconhecidos" para o navegador quando pedir).
             Versão gerada a partir do commit ${{ github.sha }}.

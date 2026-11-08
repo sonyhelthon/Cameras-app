@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#0f1115">
-  <title>Minhas Câmeras</title>
+  <title>SHCAM</title>
   <style>
     :root { --bg:#0f1115; --panel:#181b22; --line:#262a33; --text:#e8eaf0; --muted:#8b91a0; --accent:#4f8cff; --ok:#34c77b; --bad:#ff5c5c; color-scheme: dark; }
     * { box-sizing: border-box; }
@@ -47,7 +47,7 @@
 <body>
   <header>
     <img src="icon.svg" alt="">
-    <h1>Minhas Câmeras</h1>
+    <h1>SHCAM</h1>
   </header>
   <main>
     <div id="list"></div>
@@ -193,7 +193,7 @@ async function startScan() {
     stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false });
   } catch {
     stopScan();
-    overlay('Não consegui usar a câmera do celular. Permita o acesso à câmera para o app Minhas Câmeras (Configurações do Android → Apps → Minhas Câmeras → Permissões) e tente de novo.');
+    overlay('Não consegui usar a câmera do celular. Permita o acesso à câmera para o app SHCAM (Configurações do Android → Apps → SHCAM → Permissões) e tente de novo.');
     return;
   }
   const v = $('#cam');
@@ -219,7 +219,7 @@ async function startScan() {
     }
     if (text) {
       if (text.startsWith('MC1:')) { stopScan(); handleInvite(text); return; }
-      $('#scan-msg').textContent = 'Esse QR code não é um convite do Minhas Câmeras.';
+      $('#scan-msg').textContent = 'Esse QR code não é um convite do SHCAM.';
     }
     setTimeout(tick, 200);
   };
