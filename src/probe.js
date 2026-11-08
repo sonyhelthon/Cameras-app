@@ -5,7 +5,10 @@ import { redact } from './config.js';
 export function friendlyError(msg) {
   const m = String(msg);
   if (/401|Unauthorized/i.test(m)) return 'Usuário ou senha incorretos.';
-  if (/404|Not Found|400|Bad Request/i.test(m)) return 'A câmera respondeu, mas o endereço do vídeo não existe. Tente outra marca na lista.';
+  // Yoosee cameras answer 400 when the password is wrong or empty.
+  if (/400|Bad Request/i.test(m)) return 'A câmera recusou o acesso: quase sempre é a senha errada ou vazia. Confira a senha do dispositivo.';
+  if (/404|Not Found/i.test(m)) return 'A câmera respondeu, mas o endereço do vídeo não existe. Tente outra marca na lista.';
+  if (/Sem dados/i.test(m)) return 'A câmera parou de enviar imagem. Confira se ela está ligada e com Wi-Fi.';
   if (/refused/i.test(m)) return 'A câmera recusou a conexão nesta porta. Confira o IP e se ela tem RTSP.';
   if (/timed out|timeout|Tempo esgotado|No route|unreachable|Network is/i.test(m)) return 'A câmera não respondeu. Confira o IP e se ela está ligada no mesmo Wi-Fi.';
   if (/Invalid data/i.test(m)) return 'A câmera respondeu algo inesperado. Tente outra marca na lista.';

@@ -168,13 +168,13 @@ export class Drive {
     if (hit && Date.now() - hit.at < 60_000) return hit.files;
     let files = [];
     try {
-      const out = await run(this.rclone(), ['lsjson', this.remotePath(camId), '--files-only'], 60_000);
+      const out = await run(this.rclone(), ['lsjson', this.remotePath(camId), '--files-only'], 20_000);
       files = JSON.parse(out)
         .filter((f) => FILE_RE.test(f.Name))
         .map((f) => ({ name: f.Name, size: f.Size }));
     } catch (e) {
       // A camera folder that does not exist yet is not an error.
-      if (!/not found|doesn't exist/i.test(e.message)) throw e;
+      if (!/not found|doesn't exist/i.test(e.message)) throw new Error(/código null|código 1$/.test(e.message) ? 'o Drive demorou para responder' : e.message);
     }
     this.listCache.set(camId, { at: Date.now(), files });
     return files;

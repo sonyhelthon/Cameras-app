@@ -12,7 +12,7 @@ import { Drive, cleanFolder } from './drive.js';
 import { Ptz } from './ptz.js';
 import { createAuth, hashPassword } from './auth.js';
 import { discover } from './discover.js';
-import { testCamera } from './probe.js';
+import { testCamera, friendlyError } from './probe.js';
 
 const require = createRequire(import.meta.url);
 
@@ -95,12 +95,10 @@ app.post('/api/password', (req, res) => auth.changePassword(req, res));
 // Cameras for viewing
 app.get('/api/cameras', (req, res) => {
   res.json(
-    [...camById.values()].map((c) => ({
-      id: c.id,
-      name: c.name,
-      ptz: !!c.ptz,
-      ...(recorders.get(c.id)?.status() || { recording: false, lastFile: null, error: '' }),
-    })),
+    [...camById.values()].map((c) => {
+      const st = recorders.get(c.id)?.status() || { recording: false, lastFile: null, error: '' };
+      return { id: c.id, name: c.name, ptz: !!c.ptz, ...st, error: st.error ? friendlyError(st.error) : '' };
+    }),
   );
 });
 

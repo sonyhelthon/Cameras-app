@@ -90,6 +90,8 @@ function updateBadges() {
     const dot = document.querySelector(`.tile[data-cam="${cam.id}"] .dot`);
     if (!dot) continue;
     dot.classList.toggle('rec', cam.recording);
+    const msg = document.querySelector(`.tile[data-cam="${cam.id}"] .overlay-msg`);
+    if (msg && msg.textContent && !cam.recording && cam.error) msg.textContent = `${cam.error} (Ajustes → Editar → Testar)`;
     dot.title = cam.recording ? 'Gravando' : cam.error ? `Não está gravando: ${cam.error}` : 'Não está gravando';
   }
 }
