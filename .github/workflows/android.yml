@@ -45,9 +45,9 @@ jobs:
         run: |
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon
+          cp app/build/outputs/apk/debug/app-debug.apk ../MinhasCameras.apk
         env:
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          cp app/build/outputs/apk/debug/app-debug.apk ../MinhasCameras.apk
 
       - name: Publicar
         uses: softprops/action-gh-release@v2
