@@ -35,6 +35,7 @@ drive:
   # Envia os arquivos prontos a cada X minutos
   uploadEveryMinutes: 5
   # Apaga do Drive gravações mais antigas que isso (5 TB ≈ 55 dias com 4 câmeras em 1080p)
+  # Em outro local (ex.: igreja), use outra pasta: "gdrive:Cameras-Igreja"
   retentionDays: 45
   # Limite de banda de upload (ex.: "8M" = 8 MB/s). Vazio = sem limite.
   bwlimit: ""
@@ -58,10 +59,6 @@ cameras:
   - id: quintal
     name: Quintal
     host: 192.168.100.41
-    password: "senha-da-camera"
-  - id: igreja2
-    name: Igreja 2
-    host: 192.168.100.18
     password: "senha-da-camera"
   - id: sala
     name: Sala
