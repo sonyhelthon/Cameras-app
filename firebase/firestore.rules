@@ -1,6 +1,6 @@
 rules_version = '2';
 
-// Minhas Câmeras — who can see and change what.
+// SHCAM — who can see and change what.
 //
 // users/{uid}            the person (name, e-mail, phones for notifications). Only the person.
 // sites/{siteId}         a place (Casa, Igreja…). members: { uid: 'admin' | 'viewer' }.
