@@ -50,6 +50,8 @@ defaults:
   subPath: /onvif2
   onvifPort: 5000
   ptz: true
+  # Como pedir o vídeo: auto (testa TCP e UDP e fica com o que funcionar), tcp ou udp
+  transport: auto
 
 cameras:
   - id: garagem

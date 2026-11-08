@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { Supervisor, inputArgs, avArgs } from './proc.js';
+import { Supervisor, inputArgs, avArgs, flipTransport } from './proc.js';
 
 const IDLE_MS = 40_000;
 
@@ -44,6 +44,7 @@ export class LiveManager {
         '-hls_segment_filename', path.join(dir, 's%d.ts'),
         path.join(dir, 'index.m3u8'),
       ]);
+      sup.onShortExit = (args) => flipTransport(cam, args);
       sup.start();
       s = { sup, dir, last: Date.now() };
       this.sessions.set(key, s);

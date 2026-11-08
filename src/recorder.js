@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { Supervisor, inputArgs, avArgs } from './proc.js';
+import { Supervisor, inputArgs, avArgs, flipTransport } from './proc.js';
 
 export const FILE_RE = /^\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}\.mp4$/;
 
@@ -28,6 +28,7 @@ export class Recorder {
   }
 
   start() {
+    this.sup.onShortExit = (args) => flipTransport(this.cam, args);
     this.sup.start();
     // Watchdog: ffmpeg sometimes hangs without exiting when the camera drops off Wi-Fi.
     this.watchdog = setInterval(() => {

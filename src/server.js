@@ -2,6 +2,8 @@ import path from 'node:path';
 import os from 'node:os';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
+import fs from 'node:fs';
+import { spawnSync } from 'node:child_process';
 import express from 'express';
 import { loadConfig } from './config.js';
 import { Recorder, listLocal, FILE_RE } from './recorder.js';
@@ -14,6 +16,26 @@ const require = createRequire(import.meta.url);
 const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 
 const cfg = loadConfig();
+
+// Startup check: shows clearly whether ffmpeg/rclone can be started.
+function checkTool(tool, required) {
+  const bin = cfg.bin[tool];
+  const r = spawnSync(bin, [tool === 'rclone' ? 'version' : '-version'], { windowsHide: true, timeout: 15000 });
+  if (!r.error && r.status === 0) {
+    console.log(`${tool}: OK (${bin})`);
+    return true;
+  }
+  const isPath = /[\\/]/.test(bin);
+  console.error(`\n*** ${tool.toUpperCase()} NÃO FUNCIONOU ***`);
+  console.error(`  Configurado como: ${JSON.stringify(bin)}`);
+  if (isPath) console.error(`  O arquivo existe? ${fs.existsSync(bin) ? 'sim' : 'NÃO'}`);
+  console.error(`  Erro: ${r.error ? r.error.message : `código ${r.status} ${String(r.stderr || '').trim().slice(-300)}`}`);
+  console.error(`  Pasta do app: ${process.cwd()}`);
+  if (required) console.error('  Sem ele não há vídeo. Confira o caminho em "bin:" no config.yaml.\n');
+  return false;
+}
+checkTool('ffmpeg', true);
+if (cfg.drive.enabled) checkTool('rclone', false);
 const camById = new Map(cfg.cameras.map((c) => [c.id, c]));
 const recorders = new Map();
 if (cfg.recording.enabled) for (const cam of cfg.cameras) recorders.set(cam.id, new Recorder(cfg, cam));

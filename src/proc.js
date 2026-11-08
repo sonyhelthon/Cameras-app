@@ -25,6 +25,7 @@ export class Supervisor {
   _spawn() {
     if (this.stopped) return;
     const args = this.argsFn();
+    this.lastArgs = args;
     this.startedAt = Date.now();
     const child = spawn(this.bin, args, { stdio: ['ignore', 'ignore', 'pipe'], windowsHide: true });
     this.child = child;
@@ -42,6 +43,7 @@ export class Supervisor {
         if (lines.length) this.lastError = lines.slice(-3).join(' | ');
         // A run that lasted a while resets the backoff.
         if (Date.now() - this.startedAt > 60_000) this.backoff = 2000;
+        else this.onShortExit?.(this.lastArgs);
         console.warn(`[${this.name}] saiu (código ${code}); reiniciando em ${this.backoff / 1000}s. ${this.lastError}`);
         this.timer = setTimeout(() => this._spawn(), this.backoff);
         this.backoff = Math.min(this.backoff * 2, 60_000);
@@ -65,10 +67,27 @@ export class Supervisor {
   }
 }
 
+/**
+ * RTSP transport for a camera. "auto" alternates between TCP and UDP after each failed
+ * attempt (Yoosee cameras often only work over UDP) and keeps whichever one works.
+ */
+export function transportFor(cam) {
+  if (cam.transport === 'tcp' || cam.transport === 'udp') return cam.transport;
+  return (cam._transport ||= 'tcp');
+}
+export function flipTransport(cam, failedArgs = []) {
+  if (cam.transport === 'tcp' || cam.transport === 'udp') return;
+  const i = failedArgs.indexOf('-rtsp_transport');
+  // Only switch if the failed attempt used the current transport (recorder and live share it).
+  if (i < 0 || failedArgs[i + 1] !== transportFor(cam)) return;
+  cam._transport = transportFor(cam) === 'tcp' ? 'udp' : 'tcp';
+  console.warn(`[${cam.id}] tentando conectar por ${cam._transport.toUpperCase()}`);
+}
+
 /** ffmpeg input arguments for a camera URL. */
 export function inputArgs(cam, url) {
   const args = ['-hide_banner', '-loglevel', 'error', ...cam.inputArgs];
-  if (url.startsWith('rtsp://')) args.push('-rtsp_transport', 'tcp', '-timeout', '10000000');
+  if (url.startsWith('rtsp://')) args.push('-rtsp_transport', transportFor(cam), '-timeout', '10000000');
   args.push('-i', url);
   return args;
 }
