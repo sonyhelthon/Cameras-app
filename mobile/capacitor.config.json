@@ -1,6 +1,6 @@
 {
   "appId": "com.sonyhelthon.minhascameras",
-  "appName": "Minhas Câmeras",
+  "appName": "SHCAM",
   "webDir": "www",
   "server": {
     "androidScheme": "http",

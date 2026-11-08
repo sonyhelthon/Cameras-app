@@ -1,4 +1,4 @@
-# Minhas Câmeras: sem nuvem paga
+# SHCAM: câmeras sem nuvem paga
 
 App para ver, controlar e gravar câmeras Wi-Fi de **qualquer marca** (com RTSP/ONVIF), sem pagar a nuvem do fabricante.
 
@@ -56,7 +56,7 @@ Dicas:
 
 ## App Android
 
-1. No celular, abra **github.com/sonyhelthon/cameras-app/releases/tag/app-android** e baixe o **MinhasCameras.apk**.
+1. No celular, abra **github.com/sonyhelthon/cameras-app/releases/tag/app-android** e baixe o **SHCAM.apk**.
 2. Toque no arquivo baixado e instale. Se o Android pedir, permita **"instalar apps desconhecidos"** para o navegador.
 3. Abra o app e toque em **+ Adicionar local**:
    - **Nome:** Casa, Igreja…
@@ -85,7 +85,7 @@ Em **Ajustes → Alertas de pessoas** você escolhe a sensibilidade, o tempo ent
 Na primeira vez, o app baixa o modelo de detecção (3,6 MB). Os alertas ficam guardados por 30 dias.
 
 ### Notificações no celular (Firebase, grátis; fazer uma vez)
-1. Entre em **console.firebase.google.com** com sua conta Google → **Criar projeto** (nome: "Minhas Cameras"; pode desativar o Google Analytics).
+1. Entre em **console.firebase.google.com** com sua conta Google → **Criar projeto** (nome: "SHCAM"; pode desativar o Google Analytics).
 2. No projeto, clique no ícone do **Android** para adicionar um app:
    - **Nome do pacote:** `com.sonyhelthon.minhascameras`
    - Clique em **Registrar app** e **baixe o `google-services.json`**. Pode pular os outros passos.

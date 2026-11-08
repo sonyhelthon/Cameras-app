@@ -1,5 +1,5 @@
 @echo off
-title Minhas Cameras (servidor)
+title SHCAM (servidor)
 cd /d "%~dp0"
 where node >/dev/null 2>nul
 if errorlevel 1 (

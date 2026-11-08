@@ -1,5 +1,5 @@
 {
-  "name": "cameras-locais",
+  "name": "shcam-servidor",
   "version": "0.1.0",
   "private": true,
   "description": "Servidor local para câmeras Wi-Fi (RTSP/ONVIF): ao vivo, PTZ, gravação contínua e backup no Google Drive.",
