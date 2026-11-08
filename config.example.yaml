@@ -51,26 +51,26 @@ defaults:
   ptz: true
 
 cameras:
-  - id: sala
-    name: Sala
-    host: 192.168.0.101
-    password: "senha-da-camera"
-  - id: cozinha
-    name: Cozinha
-    host: 192.168.0.102
-    password: "senha-da-camera"
   - id: garagem
     name: Garagem
-    host: 192.168.0.103
+    host: 192.168.100.42
     password: "senha-da-camera"
   - id: quintal
     name: Quintal
-    host: 192.168.0.104
+    host: 192.168.100.41
+    password: "senha-da-camera"
+  - id: igreja2
+    name: Igreja 2
+    host: 192.168.100.18
+    password: "senha-da-camera"
+  - id: sala
+    name: Sala
+    host: 192.168.100.43
     password: "senha-da-camera"
 
 # Se alguma câmera usar outro endereço, dá para informar a URL completa:
 #   - id: extra
 #     name: Extra
-#     main: rtsp://admin:senha@192.168.0.110:554/stream1
-#     sub: rtsp://admin:senha@192.168.0.110:554/stream2
+#     main: rtsp://admin:senha@192.168.100.50:554/stream1
+#     sub: rtsp://admin:senha@192.168.100.50:554/stream2
 #     ptz: false

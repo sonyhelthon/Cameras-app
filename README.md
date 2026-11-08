@@ -64,7 +64,7 @@ Para cada câmera, no app **Yoosee**:
 
 Teste uma no **VLC** (Mídia → Abrir fluxo de rede):
 ```
-rtsp://admin:SENHA@192.168.0.101:554/onvif1
+rtsp://admin:SENHA@192.168.100.42:554/onvif1
 ```
 
 ### 4. Configurar
