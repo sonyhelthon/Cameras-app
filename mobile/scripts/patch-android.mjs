@@ -6,6 +6,8 @@ import fs from 'node:fs';
 const manifest = 'android/app/src/main/AndroidManifest.xml';
 let m = fs.readFileSync(manifest, 'utf8');
 if (!m.includes('usesCleartextTraffic')) m = m.replace('<application', '<application\n        android:usesCleartextTraffic="true"');
+// Camera, to scan the invite QR code.
+if (!m.includes('android.permission.CAMERA')) m = m.replace('<application', '<uses-permission android:name="android.permission.CAMERA" />\n    <application');
 fs.writeFileSync(manifest, m);
 
 const b64 = process.env.ANDROID_KEYSTORE_BASE64;

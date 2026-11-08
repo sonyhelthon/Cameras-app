@@ -46,7 +46,19 @@
         </label>
         <button id="site-save" class="btn primary">Salvar</button>
         <p id="site-msg" class="small"></p>
-        <p class="small muted">Endereço para o app Android (em casa): <strong id="site-addr"></strong></p>
+        <label class="field">Endereço de fora de casa (opcional)
+          <input id="site-remote" placeholder="https://meu-pc.tail1234.ts.net" autocapitalize="off" autocorrect="off">
+        </label>
+        <p class="small muted">Endereço em casa: <strong id="site-addr"></strong></p>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <h2>Pessoas</h2>
+          <button id="invite-new" class="btn primary">+ Convidar pessoa</button>
+        </div>
+        <p class="small muted">Cada pessoa entra escaneando um QR code no app, sem digitar IP nem senha. Remova quem não deve mais ter acesso.</p>
+        <ul id="people-list" class="admin-list"></ul>
       </div>
 
       <div class="card">
@@ -190,6 +202,39 @@
         <button type="button" id="cam-delete" class="btn danger" hidden>Remover</button>
         <button type="button" id="cam-test" class="btn">Testar</button>
         <button type="submit" id="cam-save" class="btn primary">Salvar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="invite-dialog" class="sheet">
+    <form id="invite-form" method="dialog">
+      <div class="sheet-head">
+        <strong>Convidar pessoa</strong>
+        <button type="button" id="invite-close" class="chip" aria-label="Fechar">✕</button>
+      </div>
+      <div class="sheet-body">
+        <div id="invite-step1">
+          <label class="field">Nome da pessoa <input name="name" placeholder="Ex.: Vó Maria" maxlength="40" required></label>
+          <label class="field">O que ela pode fazer
+            <select name="role">
+              <option value="viewer">Só ver (ao vivo, gravações e girar a câmera)</option>
+              <option value="admin">Administrador (tudo, inclusive mudar ajustes)</option>
+            </select>
+          </label>
+        </div>
+        <div id="invite-step2" class="invite-qr" hidden>
+          <img id="invite-img" alt="QR code do convite">
+          <ol class="small">
+            <li>No celular da pessoa, instale o app <strong>Minhas Câmeras</strong>.</li>
+            <li>Abra o app e toque em <strong>📷 Escanear convite</strong>.</li>
+            <li>Aponte para este QR code. Pronto!</li>
+          </ol>
+          <p id="invite-info" class="small muted"></p>
+        </div>
+        <p id="invite-msg" class="small"></p>
+      </div>
+      <div class="sheet-foot">
+        <button type="submit" id="invite-go" class="btn primary">Gerar QR code</button>
       </div>
     </form>
   </dialog>

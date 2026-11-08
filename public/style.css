@@ -187,3 +187,8 @@ html, body { overflow-x: hidden; }
   .viewer-foot { position: absolute; bottom: 0; left: 0; right: 0; z-index: 2; background: linear-gradient(transparent, rgba(0,0,0,.6)); align-items: flex-end; }
   .ptz { grid-template-columns: repeat(3, 44px); grid-template-rows: repeat(3, 44px); opacity: .85; }
 }
+
+.invite-qr { display: grid; gap: 10px; justify-items: center; text-align: left; }
+.invite-qr img { width: min(320px, 80vw); background: #fff; border-radius: 12px; padding: 6px; }
+.invite-qr ol { margin: 0; padding-left: 20px; display: grid; gap: 4px; justify-self: stretch; }
+.admin-list li > span:first-child { font-size: 18px; }

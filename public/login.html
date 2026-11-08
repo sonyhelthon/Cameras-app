@@ -23,6 +23,9 @@
     let setup = false;
     try { if (new URLSearchParams(location.search).get('app') === '1') sessionStorage.setItem('inApp', '1'); } catch {}
     const f = document.getElementById('login');
+    if (new URLSearchParams(location.search).has('removido')) {
+      document.getElementById('err').textContent = 'Seu acesso a este local foi removido. Peça um novo convite ao administrador.';
+    }
     fetch('/api/auth/state').then((r) => r.json()).then((s) => {
       setup = s.needsSetup;
       if (!setup) return;

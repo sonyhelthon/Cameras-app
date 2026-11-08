@@ -8,33 +8,39 @@
   <style>
     :root { --bg:#0f1115; --panel:#181b22; --line:#262a33; --text:#e8eaf0; --muted:#8b91a0; --accent:#4f8cff; --ok:#34c77b; --bad:#ff5c5c; color-scheme: dark; }
     * { box-sizing: border-box; }
-    html, body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.4 system-ui, Roboto, sans-serif; }
+    html, body { margin: 0; background: var(--bg); color: var(--text); font: 17px/1.45 system-ui, Roboto, sans-serif; }
     button, input { font: inherit; color: inherit; }
-    header { padding: max(16px, env(safe-area-inset-top)) 16px 8px; display: flex; align-items: center; gap: 12px; }
-    header img { width: 36px; height: 36px; }
-    h1 { font-size: 20px; margin: 0; }
-    main { padding: 8px 16px 32px; display: grid; gap: 10px; max-width: 560px; margin: 0 auto; }
+    header { padding: max(18px, env(safe-area-inset-top)) 16px 8px; display: flex; align-items: center; gap: 12px; }
+    header img { width: 40px; height: 40px; }
+    h1 { font-size: 22px; margin: 0; }
+    main { padding: 8px 16px 40px; display: grid; gap: 12px; max-width: 560px; margin: 0 auto; }
     .muted { color: var(--muted); }
-    .small { font-size: 13px; }
-    .site { display: flex; align-items: center; gap: 12px; padding: 16px; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; }
+    .small { font-size: 14px; }
+    .site { display: flex; align-items: center; gap: 14px; padding: 20px 16px; background: var(--panel); border: 1px solid var(--line); border-radius: 16px; }
     .site .grow { flex: 1; min-width: 0; cursor: pointer; }
-    .site strong { font-size: 17px; display: block; }
-    .site .addr { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--muted); flex: none; }
+    .site strong { font-size: 20px; display: block; }
+    .dot { width: 12px; height: 12px; border-radius: 50%; background: var(--muted); flex: none; }
     .dot.on { background: var(--ok); } .dot.off { background: var(--bad); }
-    .btn { background: var(--line); border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; cursor: pointer; }
+    .btn { background: var(--line); border: 1px solid var(--line); border-radius: 12px; padding: 12px 16px; cursor: pointer; }
     .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+    .btn.big { padding: 20px; font-size: 20px; border-radius: 16px; width: 100%; }
     .btn.danger { background: none; border-color: var(--bad); color: var(--bad); }
-    .icon-btn { background: none; border: 0; color: var(--muted); font-size: 20px; padding: 6px; cursor: pointer; }
-    .empty { text-align: center; padding: 32px 8px; color: var(--muted); display: grid; gap: 12px; }
-    form { display: grid; gap: 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 16px; }
-    label { display: grid; gap: 6px; font-size: 13px; color: var(--muted); }
-    input { background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 12px; font-size: 16px; }
+    .link { background: none; border: 0; color: var(--muted); text-decoration: underline; padding: 8px; cursor: pointer; }
+    .icon-btn { background: none; border: 0; color: var(--muted); font-size: 22px; padding: 8px; cursor: pointer; }
+    .empty { text-align: center; padding: 24px 8px 8px; color: var(--muted); }
+    form { display: grid; gap: 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 16px; }
+    label { display: grid; gap: 6px; font-size: 14px; color: var(--muted); }
+    input { background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 12px; font-size: 17px; }
     .row { display: flex; gap: 8px; flex-wrap: wrap; }
     .row .primary { margin-left: auto; }
-    .msg { font-size: 14px; margin: 0; min-height: 1.2em; }
+    .msg { font-size: 15px; margin: 0; min-height: 1.2em; }
     .msg.ok { color: var(--ok); } .msg.bad { color: var(--bad); }
-    .opening { position: fixed; inset: 0; background: var(--bg); display: grid; place-items: center; text-align: center; padding: 24px; }
+    .overlay { position: fixed; inset: 0; background: var(--bg); display: grid; place-items: center; text-align: center; padding: 24px; z-index: 10; }
+    .overlay > div { display: grid; gap: 16px; justify-items: center; max-width: 420px; }
+    #scanner { position: fixed; inset: 0; background: #000; z-index: 20; display: flex; flex-direction: column; }
+    #scanner video { flex: 1; width: 100%; object-fit: cover; min-height: 0; }
+    #scanner .frame { position: absolute; top: 50%; left: 50%; width: min(70vw, 300px); aspect-ratio: 1; transform: translate(-50%, -60%); border: 4px solid #fff; border-radius: 24px; box-shadow: 0 0 0 100vmax rgba(0,0,0,.45); pointer-events: none; }
+    #scanner .bar { padding: 20px 16px max(20px, env(safe-area-inset-bottom)); background: var(--bg); display: grid; gap: 12px; text-align: center; }
     [hidden] { display: none !important; }
   </style>
 </head>
@@ -45,7 +51,9 @@
   </header>
   <main>
     <div id="list"></div>
-    <button id="add" class="btn primary">+ Adicionar local</button>
+    <button id="scan" class="btn primary big">📷 Escanear convite</button>
+    <p id="scan-help" class="small muted" style="text-align:center;margin:0">Peça ao responsável pelas câmeras para mostrar o QR code do convite.</p>
+    <button id="add" class="link">Digitar endereço manualmente</button>
 
     <form id="form" hidden>
       <strong id="form-title">Novo local</strong>
@@ -53,10 +61,10 @@
       <label>Endereço em casa (mesmo Wi-Fi)
         <input name="lan" placeholder="192.168.100.47" inputmode="url" autocapitalize="off" autocorrect="off">
       </label>
-      <label>Endereço de fora (Tailscale), opcional
-        <input name="remote" placeholder="100.x.x.x ou nome.ts.net" inputmode="url" autocapitalize="off" autocorrect="off">
+      <label>Endereço de fora, opcional
+        <input name="remote" placeholder="https://meu-pc.tail1234.ts.net" inputmode="url" autocapitalize="off" autocorrect="off">
       </label>
-      <p class="small muted">O endereço aparece na janela preta do computador servidor (“No celular…”).</p>
+      <p class="small muted">É o endereço do computador que grava (aparece em Ajustes → Este local), não o da câmera.</p>
       <p id="form-msg" class="msg"></p>
       <div class="row">
         <button type="button" id="del" class="btn danger" hidden>Remover</button>
@@ -67,22 +75,45 @@
     </form>
   </main>
 
-  <div id="opening" class="opening" hidden>
-    <div>
-      <p id="opening-msg">Conectando…</p>
-      <button id="opening-cancel" class="btn">Voltar</button>
+  <div id="scanner" hidden>
+    <video id="cam" playsinline muted></video>
+    <div class="frame"></div>
+    <div class="bar">
+      <p id="scan-msg" style="margin:0">Aponte para o QR code do convite</p>
+      <button id="scan-cancel" class="btn">Cancelar</button>
     </div>
   </div>
 
+  <div id="overlay" class="overlay" hidden>
+    <div>
+      <p id="overlay-msg" style="margin:0">Conectando…</p>
+      <button id="overlay-btn" class="btn">Voltar</button>
+    </div>
+  </div>
+
+<script src="vendor/jsQR.js"></script>
 <script>
 'use strict';
 const $ = (s) => document.querySelector(s);
 const KEY = 'locais';
-const load = () => { try { return JSON.parse(localStorage.getItem(KEY)) || []; } catch { return []; } };
-const save = (l) => localStorage.setItem(KEY, JSON.stringify(l));
+function load() {
+  let l = [];
+  try { l = JSON.parse(localStorage.getItem(KEY)) || []; } catch { /* empty */ }
+  // Older versions kept "lan"/"remote"; now a site has a list of addresses.
+  for (const s of l) if (!s.urls) s.urls = [s.lan, s.remote].filter(Boolean);
+  return l;
+}
+const save = () => localStorage.setItem(KEY, JSON.stringify(sites));
 let sites = load();
 let editing = null;
-let cancelOpen = false;
+let cancelled = false;
+
+function overlay(msg, btn = 'Voltar') {
+  $('#overlay').hidden = !msg;
+  $('#overlay-msg').textContent = msg || '';
+  $('#overlay-btn').textContent = btn;
+}
+$('#overlay-btn').addEventListener('click', () => { cancelled = true; overlay(null); });
 
 /** "192.168.0.5" -> "http://192.168.0.5:8080"; keeps https:// and explicit ports. */
 function normalize(a) {
@@ -96,8 +127,8 @@ function normalize(a) {
   } catch { return ''; }
 }
 
-/** Checks a server; resolves with its name or null. */
-async function hello(url, ms = 3000) {
+/** Checks a server; resolves with its info or null. */
+async function hello(url, ms = 3500) {
   if (!url) return null;
   const ctl = new AbortController();
   const t = setTimeout(() => ctl.abort(), ms);
@@ -107,45 +138,140 @@ async function hello(url, ms = 3000) {
     return j.app === 'minhas-cameras' ? j : null;
   } catch { return null; } finally { clearTimeout(t); }
 }
+/** First address of the list that answers (home address answers first at home). */
+async function reachable(urls) {
+  const res = await Promise.all(urls.map((u) => hello(u, u.startsWith('https') ? 6000 : 3500).then((ok) => (ok ? u : null))));
+  return res.find(Boolean) || null;
+}
 
 function render() {
   const list = $('#list');
   list.innerHTML = '';
+  $('#scan-help').hidden = sites.length > 0;
   if (!sites.length) {
-    list.innerHTML = '<div class="empty"><p>Nenhum local ainda.</p><p class="small">Adicione o computador servidor da sua casa (e depois da igreja, ou de qualquer outro lugar).</p></div>';
+    list.innerHTML = '<div class="empty"><p>Bem-vindo! Para ver as câmeras, escaneie o convite.</p></div>';
     return;
   }
   for (const s of sites) {
     const el = document.createElement('div');
     el.className = 'site';
-    el.innerHTML = '<span class="dot"></span><div class="grow"><strong></strong><div class="small muted addr"></div></div><button class="icon-btn" aria-label="Editar">✎</button>';
+    el.innerHTML = '<span class="dot"></span><div class="grow"><strong></strong><div class="small muted"></div></div><button class="icon-btn" aria-label="Editar">✎</button>';
     el.querySelector('strong').textContent = s.name;
-    el.querySelector('.addr').textContent = [s.lan, s.remote].filter(Boolean).join(' · ').replace(/https?:\/\//g, '');
+    el.querySelector('.muted').textContent = s.key ? 'Toque para abrir' : s.urls.join(' · ').replace(/https?:\/\//g, '');
     el.querySelector('.grow').addEventListener('click', () => open(s));
     el.querySelector('.icon-btn').addEventListener('click', () => edit(s));
     list.appendChild(el);
-    // Online status (home address or Tailscale)
-    Promise.all([hello(s.lan), hello(s.remote)]).then(([a, b]) => el.querySelector('.dot').classList.add(a || b ? 'on' : 'off'));
+    reachable(s.urls).then((u) => el.querySelector('.dot').classList.add(u ? 'on' : 'off'));
   }
 }
 
 async function open(s) {
-  cancelOpen = false;
-  $('#opening').hidden = false;
-  $('#opening-msg').textContent = `Conectando em ${s.name}…`;
-  // At home the local address answers first; away, the Tailscale one.
-  const [a, b] = await Promise.all([hello(s.lan), hello(s.remote, 5000)]);
-  if (cancelOpen) return;
-  const url = a ? s.lan : b ? s.remote : null;
+  cancelled = false;
+  overlay(`Abrindo ${s.name}…`);
+  const url = await reachable(s.urls);
+  if (cancelled) return;
   if (!url) {
-    $('#opening-msg').textContent = `Não consegui falar com ${s.name}. O computador servidor está ligado? Se você está fora de casa, o Tailscale está ativo no celular?`;
+    const remote = s.urls.some((u) => u.startsWith('https'));
+    overlay(remote
+      ? `Não consegui falar com ${s.name}. Confira a internet do celular, ou se o computador de lá está ligado.`
+      : `Não consegui falar com ${s.name}. Conecte o celular no Wi-Fi de lá, e confira se o computador está ligado.`);
     return;
   }
   localStorage.setItem('ultimo', s.id);
-  location.href = `${url}/?app=1`;
+  location.href = s.key ? `${url}/api/auth/device?k=${encodeURIComponent(s.key)}` : `${url}/?app=1`;
 }
-$('#opening-cancel').addEventListener('click', () => { cancelOpen = true; $('#opening').hidden = true; });
 
+// ---------- Invite QR code ----------
+let stream = null;
+let scanning = false;
+async function startScan() {
+  $('#scanner').hidden = false;
+  $('#scan-msg').textContent = 'Aponte para o QR code do convite';
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false });
+  } catch {
+    stopScan();
+    overlay('Não consegui usar a câmera do celular. Permita o acesso à câmera para o app Minhas Câmeras (Configurações do Android → Apps → Minhas Câmeras → Permissões) e tente de novo.');
+    return;
+  }
+  const v = $('#cam');
+  v.srcObject = stream;
+  await v.play().catch(() => {});
+  scanning = true;
+  const detector = 'BarcodeDetector' in window ? new BarcodeDetector({ formats: ['qr_code'] }) : null;
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+  const tick = async () => {
+    if (!scanning) return;
+    let text = null;
+    if (v.videoWidth) {
+      try {
+        if (detector) text = (await detector.detect(v))[0]?.rawValue || null;
+        else {
+          const w = 640, h = Math.round((v.videoHeight / v.videoWidth) * 640);
+          canvas.width = w; canvas.height = h;
+          ctx.drawImage(v, 0, 0, w, h);
+          text = jsQR(ctx.getImageData(0, 0, w, h).data, w, h)?.data || null;
+        }
+      } catch { /* try again */ }
+    }
+    if (text) {
+      if (text.startsWith('MC1:')) { stopScan(); handleInvite(text); return; }
+      $('#scan-msg').textContent = 'Esse QR code não é um convite do Minhas Câmeras.';
+    }
+    setTimeout(tick, 200);
+  };
+  tick();
+}
+function stopScan() {
+  scanning = false;
+  stream?.getTracks().forEach((t) => t.stop());
+  stream = null;
+  $('#scanner').hidden = true;
+}
+$('#scan').addEventListener('click', startScan);
+$('#scan-cancel').addEventListener('click', stopScan);
+
+function deviceName() {
+  const m = /Android [\d.]+; ([^;)]+)/.exec(navigator.userAgent);
+  return m ? m[1].replace(/ Build.*/, '').trim() : 'Celular';
+}
+
+async function handleInvite(text) {
+  let inv;
+  try {
+    const bin = atob(text.slice(4).replace(/-/g, '+').replace(/_/g, '/'));
+    inv = JSON.parse(new TextDecoder().decode(Uint8Array.from(bin, (c) => c.charCodeAt(0))));
+  } catch { inv = null; }
+  if (!inv?.c || !Array.isArray(inv.u)) return overlay('QR code inválido. Peça um novo convite.');
+  inv.n ||= 'Câmeras';
+  cancelled = false;
+  overlay(`Conectando em ${inv.n}…`);
+  const url = await reachable(inv.u);
+  if (cancelled) return;
+  if (!url) return overlay(`Não consegui falar com ${inv.n}. Conecte o celular no Wi-Fi de ${inv.n} e escaneie de novo.`);
+  try {
+    const r = await fetch(`${url}/api/invite/redeem`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code: inv.c, device: deviceName() }),
+    });
+    const j = await r.json();
+    if (!r.ok) return overlay(j.error || 'Convite não aceito.');
+    const name = j.site || inv.n;
+    let site = sites.find((s) => s.name === name);
+    if (site) Object.assign(site, { urls: inv.u, key: j.key });
+    else sites.push((site = { id: Date.now().toString(36), name, urls: inv.u, key: j.key }));
+    save();
+    render();
+    overlay(null);
+    open(site);
+  } catch {
+    overlay('Não consegui concluir o convite. Tente de novo.');
+  }
+}
+
+// ---------- Manual address (advanced) ----------
 function edit(s) {
   editing = s;
   const f = $('#form');
@@ -153,26 +279,30 @@ function edit(s) {
   $('#form-title').textContent = s ? `Editar ${s.name}` : 'Novo local';
   $('#del').hidden = !s;
   $('#form-msg').textContent = '';
-  if (s) { f.name.value = s.name; f.lan.value = s.lan.replace(/^http:\/\//, '').replace(/:8080$/, ''); f.remote.value = (s.remote || '').replace(/^http:\/\//, '').replace(/:8080$/, ''); }
+  if (s) {
+    f.name.value = s.name;
+    const strip = (u) => (u || '').replace(/^http:\/\//, '').replace(/:8080$/, '');
+    f.lan.value = strip(s.urls.find((u) => u.startsWith('http:')));
+    f.remote.value = s.urls.find((u) => u.startsWith('https:')) || '';
+  }
   f.hidden = false;
   $('#add').hidden = true;
-  f.name.focus();
+  f.scrollIntoView({ behavior: 'smooth' });
 }
 function closeForm() { $('#form').hidden = true; $('#add').hidden = false; }
-
 $('#add').addEventListener('click', () => edit(null));
 $('#cancel').addEventListener('click', closeForm);
 $('#del').addEventListener('click', () => {
-  if (!editing || !confirm(`Remover “${editing.name}” da lista? (nada é apagado no servidor)`)) return;
-  sites = sites.filter((x) => x !== editing); save(sites); closeForm(); render();
+  if (!editing || !confirm(`Remover “${editing.name}” deste celular?`)) return;
+  sites = sites.filter((x) => x !== editing); save(); closeForm(); render();
 });
 $('#test').addEventListener('click', async () => {
   const f = $('#form'); const m = $('#form-msg');
   m.className = 'msg'; m.textContent = 'Testando…';
   const lan = normalize(f.lan.value), remote = normalize(f.remote.value);
-  const [a, b] = await Promise.all([hello(lan), hello(remote, 5000)]);
+  const [a, b] = await Promise.all([hello(lan), hello(remote, 6000)]);
   const parts = [];
-  if (lan) parts.push(a ? `Em casa: OK (${a.name})` : 'Em casa: sem resposta');
+  if (lan) parts.push(a ? `Em casa: OK (${a.name})` : 'Em casa: sem resposta (é o endereço do computador, não da câmera?)');
   if (remote) parts.push(b ? `De fora: OK (${b.name})` : 'De fora: sem resposta');
   m.className = `msg ${a || b ? 'ok' : 'bad'}`;
   m.textContent = parts.join(' · ') || 'Informe pelo menos um endereço.';
@@ -181,18 +311,17 @@ $('#test').addEventListener('click', async () => {
 $('#form').addEventListener('submit', (e) => {
   e.preventDefault();
   const f = e.target;
-  const lan = normalize(f.lan.value), remote = normalize(f.remote.value);
-  if (!lan && !remote) { $('#form-msg').className = 'msg bad'; $('#form-msg').textContent = 'Informe pelo menos um endereço.'; return; }
-  const data = { name: f.name.value.trim(), lan, remote };
+  const urls = [normalize(f.lan.value), normalize(f.remote.value)].filter(Boolean);
+  if (!urls.length) { $('#form-msg').className = 'msg bad'; $('#form-msg').textContent = 'Informe pelo menos um endereço.'; return; }
+  const data = { name: f.name.value.trim(), urls };
   if (editing) Object.assign(editing, data); else sites.push({ id: Date.now().toString(36), ...data });
-  save(sites); closeForm(); render();
+  save(); closeForm(); render();
 });
 
 render();
-// Opens straight into the last place used (unless coming back from it with "Locais").
-const params = new URLSearchParams(location.search);
+// Opens straight into the last place used (unless coming back with "⇄").
 const last = sites.find((s) => s.id === localStorage.getItem('ultimo'));
-if (!params.has('locais') && last) open(last);
+if (!new URLSearchParams(location.search).has('locais') && last) open(last);
 </script>
 </body>
 </html>

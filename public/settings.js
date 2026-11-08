@@ -192,6 +192,7 @@
   async function loadSettings() {
     const { settings: s, drive, tools, toolErrors, addresses } = await api('/api/settings');
     $('#site-input').value = s.site.name;
+    $('#site-remote').value = s.site.remoteUrl || '';
     $('#site-addr').textContent = (addresses || []).join('  ou  ') || location.host;
     $('#drive-folder').value = s.drive.folder;
     $('#drive-days').value = s.drive.retentionDays;
@@ -242,7 +243,7 @@
   }
 
   $('#site-save').addEventListener('click', () =>
-    saveSettings({ site: { name: $('#site-input').value } }, $('#site-msg')).then(() => (document.querySelector('#site-name').textContent = $('#site-input').value.trim())),
+    saveSettings({ site: { name: $('#site-input').value, remoteUrl: $('#site-remote').value } }, $('#site-msg')).then(() => (document.querySelector('#site-name').textContent = $('#site-input').value.trim())),
   );
   $('#drive-save').addEventListener('click', () =>
     saveSettings({ drive: { folder: $('#drive-folder').value, retentionDays: Number($('#drive-days').value), enabled: $('#drive-enabled').checked } }, $('#drive-msg')),
@@ -295,13 +296,84 @@
     location.href = '/login.html';
   });
 
+  // ---------- People ----------
+  const ago = (t) => {
+    const m = Math.round((Date.now() - t) / 60000);
+    if (m < 2) return 'agora';
+    if (m < 60) return `há ${m} min`;
+    if (m < 48 * 60) return `há ${Math.round(m / 60)} h`;
+    return `há ${Math.round(m / 1440)} dias`;
+  };
+  async function loadPeople() {
+    const { users, invites } = await api('/api/users');
+    const list = $('#people-list');
+    list.innerHTML = '';
+    const me = document.createElement('li');
+    me.innerHTML = '<span>👑</span><div class="grow"><strong>Você (senha de administrador)</strong><div class="small muted">Administrador</div></div>';
+    list.appendChild(me);
+    for (const u of users) {
+      const li = document.createElement('li');
+      li.innerHTML = '<span>👤</span><div class="grow"><strong></strong><div class="small muted"></div></div><button class="btn small-btn danger">Remover</button>';
+      li.querySelector('strong').textContent = u.name;
+      li.querySelector('.muted').textContent = `${u.roleLabel} · visto ${ago(u.lastSeen)}`;
+      li.querySelector('button').addEventListener('click', async () => {
+        if (!confirm(`Remover o acesso de “${u.name}”? O app no celular dessa pessoa deixa de funcionar na hora.`)) return;
+        await api(`/api/users/${u.id}`, { method: 'DELETE' });
+        loadPeople();
+      });
+      list.appendChild(li);
+    }
+    for (const i of invites) {
+      const li = document.createElement('li');
+      li.innerHTML = '<span>✉️</span><div class="grow"><strong></strong><div class="small muted"></div></div><button class="btn small-btn">Cancelar</button>';
+      li.querySelector('strong').textContent = i.name;
+      li.querySelector('.muted').textContent = `Convite ainda não usado · vale até ${new Date(i.expires).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}`;
+      li.querySelector('button').addEventListener('click', async () => {
+        await api(`/api/users/${i.id}`, { method: 'DELETE' });
+        loadPeople();
+      });
+      list.appendChild(li);
+    }
+  }
+
+  const inviteForm = $('#invite-form');
+  $('#invite-new').addEventListener('click', () => {
+    inviteForm.reset();
+    $('#invite-step1').hidden = false;
+    $('#invite-step2').hidden = true;
+    $('#invite-go').hidden = false;
+    say($('#invite-msg'), '');
+    $('#invite-dialog').showModal();
+    inviteForm.elements.name.focus();
+  });
+  $('#invite-close').addEventListener('click', () => $('#invite-dialog').close());
+  $('#invite-dialog').addEventListener('close', () => loadPeople());
+  inviteForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    try {
+      const r = await api('/api/invites', {
+        method: 'POST',
+        body: JSON.stringify({ name: inviteForm.elements.name.value, role: inviteForm.elements.role.value }),
+      });
+      $('#invite-img').src = r.qr;
+      $('#invite-info').textContent =
+        `Convite para ${r.name} (${r.role === 'admin' ? 'Administrador' : 'Só ver'}). Vale uma vez, até ${new Date(r.expires).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}.` +
+        (r.urls.some((u) => u.startsWith('https')) ? '' : ' Funciona no Wi-Fi deste local (o acesso de fora ainda não está configurado).');
+      $('#invite-step1').hidden = true;
+      $('#invite-step2').hidden = false;
+      $('#invite-go').hidden = true;
+    } catch (err) {
+      say($('#invite-msg'), err.message, false);
+    }
+  });
+
   // Called by app.js when the "Ajustes" tab opens.
   window.openSettings = async () => {
     if (!brands.length) {
       brands = await api('/api/brands');
       fillBrands();
     }
-    await Promise.all([loadAdmin(), loadSettings()]);
+    await Promise.all([loadAdmin(), loadSettings(), loadPeople()]);
   };
   window.openCameraEditor = () => window.openSettings().then(() => openEditor());
 })();

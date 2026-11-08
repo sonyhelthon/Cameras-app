@@ -2,6 +2,7 @@ import path from 'node:path';
 import os from 'node:os';
 import { createRequire } from 'node:module';
 import express from 'express';
+import QRCode from 'qrcode';
 import { loadBase, importLegacy, ROOT } from './config.js';
 import { Store } from './store.js';
 import { BRANDS, resolveCamera, guessBrand } from './presets.js';
@@ -91,6 +92,32 @@ app.get('/api/hello', (req, res) => {
   res.set('Access-Control-Allow-Origin', '*').json({ app: 'minhas-cameras', name: store.settings.site.name });
 });
 app.get('/api/auth/state', (req, res) => auth.state(req, res));
+app.get('/api/me', (req, res) => auth.me(req, res));
+app.post('/api/invite/redeem', (req, res) => auth.redeem(req, res));
+app.get('/api/auth/device', (req, res) => auth.device(req, res));
+
+// ---------- People and invites (administrator) ----------
+/** Addresses of this computer on the home network (for the phone app). */
+function lanUrls() {
+  return Object.values(os.networkInterfaces())
+    .flat()
+    .filter((i) => i && i.family === 'IPv4' && !i.internal && /^(192\.168|10\.)/.test(i.address))
+    .map((i) => `http://${i.address}:${base.port}`);
+}
+app.get('/api/users', (req, res) => res.json(auth.listPeople()));
+app.delete('/api/users/:id', (req, res) => {
+  if (!auth.removeUser(req.params.id)) return res.status(404).json({ error: 'Não encontrado' });
+  res.json({ ok: true });
+});
+app.post('/api/invites', wrap(async (req, res) => {
+  const { invite, code } = auth.createInvite(req.body || {});
+  const site = store.settings.site;
+  const urls = [...lanUrls(), site.remoteUrl].filter(Boolean);
+  // What the phone app reads from the QR code: place name, addresses and the one-time code.
+  const payload = `MC1:${Buffer.from(JSON.stringify({ n: site.name, u: urls, c: code })).toString('base64url')}`;
+  const qr = await QRCode.toDataURL(payload, { margin: 2, width: 420, errorCorrectionLevel: 'M' });
+  res.json({ qr, name: invite.name, role: invite.role, expires: invite.expires, urls });
+}));
 app.post('/api/setup', (req, res) => auth.setup(req, res));
 app.post('/api/login', (req, res) => auth.login(req, res));
 app.post('/api/logout', (req, res) => auth.logout(req, res));
@@ -248,7 +275,19 @@ app.put('/api/settings', (req, res) => {
   if (b.site?.name !== undefined) {
     const n = String(b.site.name).trim().slice(0, 30);
     if (!n) throw bad('Dê um nome para este local (ex.: Casa).');
-    patch.site = { name: n };
+    patch.site = { ...patch.site, name: n };
+  }
+  if (b.site?.remoteUrl !== undefined) {
+    let u = String(b.site.remoteUrl).trim().replace(/\/+$/, '');
+    if (u && !/^https?:\/\//i.test(u)) u = `https://${u}`;
+    if (u) {
+      try {
+        u = new URL(u).origin;
+      } catch {
+        throw bad('Endereço de fora inválido (ex.: https://meu-pc.tail1234.ts.net).');
+      }
+    }
+    patch.site = { ...patch.site, remoteUrl: u };
   }
   if (b.recording) {
     patch.recording = {};

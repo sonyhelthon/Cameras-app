@@ -54,7 +54,8 @@ function renderGrid() {
   grid.innerHTML = '';
   if (!cameras.length) {
     grid.innerHTML = '<div class="empty-state"><p>Nenhuma câmera ainda.</p><button class="btn primary">+ Adicionar câmera</button></div>';
-    grid.querySelector('button').addEventListener('click', () => {
+    if (me.role !== 'admin') grid.querySelector('button').remove();
+    grid.querySelector('button')?.addEventListener('click', () => {
       showTab('settings');
       window.openCameraEditor();
     });
@@ -352,7 +353,11 @@ try {
 } catch { /* storage blocked */ }
 
 // ---------- Init ----------
+let me = { role: 'admin' };
 (async () => {
+  me = await api('/api/me').catch(() => me);
+  // "Só ver": no Ajustes tab.
+  if (me.role !== 'admin') document.querySelector('[data-tab=settings]').hidden = true;
   $('#rec-day').value = today();
   await reloadCameras();
   refreshStatus();
