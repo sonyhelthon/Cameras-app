@@ -1,0 +1,20 @@
+{
+  "name": "cameras-locais",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Servidor local para câmeras Wi-Fi (RTSP/ONVIF): ao vivo, PTZ, gravação contínua e backup no Google Drive.",
+  "type": "module",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "express": "^5.1.0",
+    "hls.js": "^1.6.0",
+    "onvif": "^0.8.3",
+    "yaml": "^2.8.0"
+  }
+}

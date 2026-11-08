@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0f1115">
+  <title>Minhas Câmeras</title>
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" href="/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <header class="top">
+    <h1>Câmeras</h1>
+    <nav class="tabs" role="tablist">
+      <button role="tab" data-tab="live" aria-selected="true">Ao vivo</button>
+      <button role="tab" data-tab="recs" aria-selected="false">Gravações</button>
+    </nav>
+    <span id="drive-status" class="pill" title="Google Drive"></span>
+  </header>
+
+  <main>
+    <section id="tab-live" class="tab">
+      <div id="grid" class="grid"></div>
+    </section>
+
+    <section id="tab-recs" class="tab" hidden>
+      <div class="rec-controls">
+        <select id="rec-cam" aria-label="Câmera"></select>
+        <input id="rec-day" type="date" aria-label="Dia">
+      </div>
+      <video id="rec-player" class="rec-player" controls playsinline hidden></video>
+      <p id="rec-info" class="muted"></p>
+      <ul id="rec-list" class="rec-list"></ul>
+    </section>
+  </main>
+
+  <dialog id="viewer">
+    <div class="viewer-head">
+      <strong id="viewer-title"></strong>
+      <div class="viewer-actions">
+        <button id="viewer-hd" class="chip">HD</button>
+        <button id="viewer-close" class="chip" aria-label="Fechar">✕</button>
+      </div>
+    </div>
+    <div class="viewer-body">
+      <video id="viewer-video" autoplay muted playsinline></video>
+      <div id="viewer-msg" class="overlay-msg"></div>
+    </div>
+    <div class="viewer-foot">
+      <button id="viewer-sound" class="chip">🔇 Som</button>
+      <div id="ptz" class="ptz">
+        <button data-dir="up" aria-label="Cima">▲</button>
+        <button data-dir="left" aria-label="Esquerda">◀</button>
+        <button data-dir="right" aria-label="Direita">▶</button>
+        <button data-dir="down" aria-label="Baixo">▼</button>
+      </div>
+    </div>
+  </dialog>
+
+  <script src="/vendor/hls.min.js"></script>
+  <script src="/app.js"></script>
+</body>
+</html>
