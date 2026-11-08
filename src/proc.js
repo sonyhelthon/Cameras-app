@@ -69,11 +69,11 @@ export class Supervisor {
 
 /**
  * RTSP transport for a camera. "auto" alternates between TCP and UDP after each failed
- * attempt (Yoosee cameras often only work over UDP) and keeps whichever one works.
+ * attempt (starts with UDP: Yoosee cameras such as the JT-8177 work over UDP) and keeps whichever one works.
  */
 export function transportFor(cam) {
   if (cam.transport === 'tcp' || cam.transport === 'udp') return cam.transport;
-  return (cam._transport ||= 'tcp');
+  return (cam._transport ||= 'udp');
 }
 export function flipTransport(cam, failedArgs = []) {
   if (cam.transport === 'tcp' || cam.transport === 'udp') return;
@@ -87,9 +87,23 @@ export function flipTransport(cam, failedArgs = []) {
 /** ffmpeg input arguments for a camera URL. */
 export function inputArgs(cam, url) {
   const args = ['-hide_banner', '-loglevel', 'error', ...cam.inputArgs];
-  if (url.startsWith('rtsp://')) args.push('-rtsp_transport', transportFor(cam), '-timeout', '10000000');
+  // No "-timeout": it made Yoosee connections fail. Hangs are handled by the watchdogs.
+  if (url.startsWith('rtsp://')) args.push('-rtsp_transport', transportFor(cam));
   args.push('-i', url);
   return args;
+}
+
+/**
+ * Live view: re-encode to H.264, because these cameras send H.265 (HEVC), which most
+ * browsers cannot play. Keyframe every second for low latency.
+ */
+export function liveArgs() {
+  return [
+    '-map', '0:v:0', '-map', '0:a:0?',
+    '-c:v', 'libx264', '-preset', 'ultrafast', '-tune', 'zerolatency', '-crf', '26',
+    '-pix_fmt', 'yuv420p', '-force_key_frames', 'expr:gte(t,n_forced*1)',
+    '-c:a', 'aac', '-b:a', '64k', '-ar', '16000',
+  ];
 }
 
 /** Map video + optional audio; copy video, AAC audio. */

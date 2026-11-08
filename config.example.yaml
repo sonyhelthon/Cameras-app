@@ -19,7 +19,7 @@ recording:
   enabled: true
   # Duração de cada arquivo de vídeo, em minutos
   segmentMinutes: 10
-  # "main" = 1080p (≈ 20 GB por câmera por dia) | "sub" = qualidade menor (≈ 3–5 GB por dia)
+  # "main" = 1080p | "sub" = qualidade menor. As JT-8177 usam H.265, que ocupa pouco espaço.
   stream: main
   # Grava o áudio (convertido para AAC)
   audio: true
@@ -50,7 +50,7 @@ defaults:
   subPath: /onvif2
   onvifPort: 5000
   ptz: true
-  # Como pedir o vídeo: auto (testa TCP e UDP e fica com o que funcionar), tcp ou udp
+  # Como pedir o vídeo: auto (começa por UDP; se falhar, testa TCP), tcp ou udp
   transport: auto
 
 cameras:

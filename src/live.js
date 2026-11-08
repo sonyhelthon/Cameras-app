@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { Supervisor, inputArgs, avArgs, flipTransport } from './proc.js';
+import { Supervisor, inputArgs, liveArgs, flipTransport } from './proc.js';
 
 const IDLE_MS = 40_000;
 
@@ -36,7 +36,7 @@ export class LiveManager {
       const url = q === 'hd' ? cam.main : cam.sub;
       const sup = new Supervisor(`ao vivo ${key}`, this.cfg.bin.ffmpeg, () => [
         ...inputArgs(cam, url),
-        ...avArgs(true),
+        ...liveArgs(),
         '-f', 'hls',
         '-hls_time', '1',
         '-hls_list_size', '6',
@@ -47,6 +47,16 @@ export class LiveManager {
       sup.onShortExit = (args) => flipTransport(cam, args);
       sup.start();
       s = { sup, dir, last: Date.now() };
+      // Watchdog: restart if ffmpeg is running but no new video arrives for 30s (hung connection).
+      s.watch = setInterval(() => {
+        if (!sup.running || Date.now() - sup.startedAt < 30_000) return;
+        let newest = 0;
+        for (const f of fs.readdirSync(dir)) newest = Math.max(newest, fs.statSync(path.join(dir, f)).mtimeMs);
+        if (Date.now() - newest > 30_000) {
+          sup.lastError ||= 'Sem dados da câmera';
+          sup.restart();
+        }
+      }, 10_000);
       this.sessions.set(key, s);
     }
     s.last = Date.now();
@@ -71,6 +81,7 @@ export class LiveManager {
   _reap() {
     for (const [key, s] of this.sessions) {
       if (Date.now() - s.last > IDLE_MS) {
+        clearInterval(s.watch);
         s.sup.stop();
         fs.rmSync(s.dir, { recursive: true, force: true });
         this.sessions.delete(key);
@@ -80,7 +91,10 @@ export class LiveManager {
 
   stopAll() {
     clearInterval(this.reaper);
-    for (const s of this.sessions.values()) s.sup.stop();
+    for (const s of this.sessions.values()) {
+      clearInterval(s.watch);
+      s.sup.stop();
+    }
     this.sessions.clear();
   }
 }

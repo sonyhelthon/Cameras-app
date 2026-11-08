@@ -37,7 +37,9 @@ export function loadConfig(file = process.env.CONFIG || 'config.yaml') {
     if (seen.has(cam.id)) throw new Error(`Id de câmera repetido: ${cam.id}`);
     seen.add(cam.id);
     cam.name ||= cam.id;
-    const auth = cam.password ? `${encodeURIComponent(cam.user)}:${encodeURIComponent(cam.password)}@` : '';
+    // Only escape characters that break the URL (passwords like "$abc" are sent as typed).
+    const esc = (v) => String(v).replace(/[@:/?#%\s]/g, (ch) => encodeURIComponent(ch));
+    const auth = cam.password ? `${esc(cam.user)}:${esc(cam.password)}@` : '';
     cam.main ||= `rtsp://${auth}${cam.host}:${cam.rtspPort}${cam.mainPath}`;
     cam.sub ||= cam.host ? `rtsp://${auth}${cam.host}:${cam.rtspPort}${cam.subPath}` : cam.main;
     cam.inputArgs ||= [];
