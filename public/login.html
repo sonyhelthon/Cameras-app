@@ -44,7 +44,12 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ password: f.password.value }),
       });
-      if (r.ok) location.href = '/';
+      if (r.ok) {
+        // Keep what the phone app asked for (e.g. ?app=1&tab=settings&add=camera).
+        const q = new URLSearchParams(location.search);
+        q.delete('removido');
+        location.href = `/${q.toString() ? `?${q}` : ''}`;
+      }
       else err.textContent = (await r.json().catch(() => ({}))).error || 'Erro ao entrar';
     });
   </script>

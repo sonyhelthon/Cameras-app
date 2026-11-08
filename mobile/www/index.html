@@ -41,6 +41,20 @@
     #scanner video { flex: 1; width: 100%; object-fit: cover; min-height: 0; }
     #scanner .frame { position: absolute; top: 50%; left: 50%; width: min(70vw, 300px); aspect-ratio: 1; transform: translate(-50%, -60%); border: 4px solid #fff; border-radius: 24px; box-shadow: 0 0 0 100vmax rgba(0,0,0,.45); pointer-events: none; }
     #scanner .bar { padding: 20px 16px max(20px, env(safe-area-inset-bottom)); background: var(--bg); display: grid; gap: 12px; text-align: center; }
+    .choices { display: grid; gap: 10px; }
+    .choice { display: flex; gap: 14px; align-items: center; text-align: left; width: 100%; padding: 18px 16px; background: var(--panel); border: 1px solid var(--line); border-radius: 16px; cursor: pointer; }
+    .choice strong { font-size: 19px; }
+    .choice .ico { font-size: 30px; }
+    .page { position: fixed; inset: 0; background: var(--bg); overflow-y: auto; z-index: 5; }
+    .page main { padding-top: 0; }
+    .progress { height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; }
+    .progress > div { height: 100%; width: 0; background: var(--accent); transition: width .3s; }
+    .card-note { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px; }
+    .card-note ul { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 4px; }
+    .sheet-bg { position: fixed; inset: 0; background: rgba(0,0,0,.6); z-index: 8; display: flex; align-items: flex-end; }
+    .sheet { width: 100%; background: var(--panel); border-radius: 18px 18px 0 0; padding: 18px 16px max(18px, env(safe-area-inset-bottom)); display: grid; gap: 10px; }
+    .sheet strong { font-size: 19px; }
+    .found { display: flex; align-items: center; gap: 12px; padding: 16px; background: var(--panel); border: 1px solid var(--accent); border-radius: 14px; cursor: pointer; width: 100%; text-align: left; margin-bottom: 8px; }
     [hidden] { display: none !important; }
   </style>
 </head>
@@ -51,9 +65,19 @@
   </header>
   <main>
     <div id="list"></div>
-    <button id="scan" class="btn primary big">📷 Escanear convite</button>
-    <p id="scan-help" class="small muted" style="text-align:center;margin:0">Peça ao responsável pelas câmeras para mostrar o QR code do convite.</p>
-    <button id="add" class="link">Digitar endereço manualmente</button>
+    <button id="more" class="btn big" hidden>+ Adicionar</button>
+    <div id="choices" class="choices">
+      <p id="welcome" class="muted" style="text-align:center;margin:8px 0 0">Bem-vindo! O que você quer fazer?</p>
+      <button id="c-install" class="choice">
+        <span class="ico">🔧</span>
+        <span><strong>Instalar câmeras</strong><br><span class="muted small">Na sua casa, na casa dos seus pais, na igreja…</span></span>
+      </button>
+      <button id="scan" class="choice">
+        <span class="ico">📷</span>
+        <span><strong>Entrar com convite</strong><br><span class="muted small">Alguém te convidou para ver as câmeras dele</span></span>
+      </button>
+      <button id="add" class="link">Digitar endereço manualmente</button>
+    </div>
 
     <form id="form" hidden>
       <strong id="form-title">Novo local</strong>
@@ -74,6 +98,39 @@
       </div>
     </form>
   </main>
+
+  <div id="install" class="page" hidden>
+    <header><button id="install-back" class="icon-btn" aria-label="Voltar">←</button><h1>Instalar câmeras</h1></header>
+    <main>
+      <p class="muted" style="margin:0">As câmeras gravam num <strong>computador ligado no local</strong> (com o programa Minhas Câmeras aberto). Conecte este celular no <strong>Wi-Fi do local</strong> onde vai instalar.</p>
+      <p id="inst-status" style="margin:0"></p>
+      <div class="progress" id="inst-progress"><div></div></div>
+      <div id="inst-list"></div>
+      <div id="inst-none" class="card-note" hidden>
+        <strong>Não encontrei o computador neste Wi-Fi.</strong>
+        <ul class="small">
+          <li>O celular está no Wi-Fi do local (não no 4G)?</li>
+          <li>O computador está ligado, com a janela <em>Minhas Câmeras</em> aberta?</li>
+          <li>Ainda não tem o programa no computador? Peça para quem cuida das câmeras instalar (instruções em github.com/sonyhelthon/cameras-app).</li>
+        </ul>
+      </div>
+      <div class="row">
+        <button id="inst-again" class="btn">Procurar de novo</button>
+        <button id="inst-manual" class="btn">Digitar endereço</button>
+      </div>
+    </main>
+  </div>
+
+  <div id="site-menu" class="sheet-bg" hidden>
+    <div class="sheet">
+      <strong id="menu-title"></strong>
+      <button id="m-open" class="btn big">Abrir câmeras</button>
+      <button id="m-install" class="btn big">🔧 Instalar câmera aqui</button>
+      <button id="m-edit" class="btn">Editar endereço</button>
+      <button id="m-remove" class="btn danger">Remover deste celular</button>
+      <button id="m-cancel" class="link">Cancelar</button>
+    </div>
+  </div>
 
   <div id="scanner" hidden>
     <video id="cam" playsinline muted></video>
@@ -148,25 +205,25 @@ async function reachable(urls) {
 function render() {
   const list = $('#list');
   list.innerHTML = '';
-  $('#scan-help').hidden = sites.length > 0;
-  if (!sites.length) {
-    list.innerHTML = '<div class="empty"><p>Bem-vindo! Para ver as câmeras, escaneie o convite.</p></div>';
-    return;
-  }
+  // No places yet: show the two choices right away. Otherwise they are behind "+ Adicionar".
+  $('#choices').hidden = sites.length > 0;
+  $('#welcome').hidden = sites.length > 0;
+  $('#more').hidden = !sites.length;
+  if (!sites.length) return;
   for (const s of sites) {
     const el = document.createElement('div');
     el.className = 'site';
-    el.innerHTML = '<span class="dot"></span><div class="grow"><strong></strong><div class="small muted"></div></div><button class="icon-btn" aria-label="Editar">✎</button>';
+    el.innerHTML = '<span class="dot"></span><div class="grow"><strong></strong><div class="small muted"></div></div><button class="icon-btn" aria-label="Opções">⋮</button>';
     el.querySelector('strong').textContent = s.name;
     el.querySelector('.muted').textContent = s.key ? 'Toque para abrir' : s.urls.join(' · ').replace(/https?:\/\//g, '');
     el.querySelector('.grow').addEventListener('click', () => open(s));
-    el.querySelector('.icon-btn').addEventListener('click', () => edit(s));
+    el.querySelector('.icon-btn').addEventListener('click', () => siteMenu(s));
     list.appendChild(el);
     reachable(s.urls).then((u) => el.querySelector('.dot').classList.add(u ? 'on' : 'off'));
   }
 }
 
-async function open(s, tab = '') {
+async function open(s, tab = '', add = '') {
   cancelled = false;
   overlay(`Abrindo ${s.name}…`);
   const url = await reachable(s.urls);
@@ -179,8 +236,9 @@ async function open(s, tab = '') {
     return;
   }
   localStorage.setItem('ultimo', s.id);
-  const extra = `${pushToken ? `&push=${encodeURIComponent(pushToken)}` : ''}${tab ? `&tab=${tab}` : ''}`;
-  location.href = s.key ? `${url}/api/auth/device?k=${encodeURIComponent(s.key)}${extra}` : `${url}/?app=1${tab ? `&tab=${tab}` : ''}`;
+  const nav = `${tab ? `&tab=${tab}` : ''}${add ? `&add=${add}` : ''}`;
+  const extra = `${pushToken ? `&push=${encodeURIComponent(pushToken)}` : ''}${nav}`;
+  location.href = s.key ? `${url}/api/auth/device?k=${encodeURIComponent(s.key)}${extra}` : `${url}/?app=1${nav}`;
 }
 
 // ---------- Invite QR code ----------
@@ -273,6 +331,108 @@ async function handleInvite(text) {
   }
 }
 
+$('#more').addEventListener('click', () => {
+  const c = $('#choices');
+  c.hidden = !c.hidden;
+  if (!c.hidden) c.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+});
+
+// ---------- Menu of a place ----------
+let menuSite = null;
+function siteMenu(s) {
+  menuSite = s;
+  $('#menu-title').textContent = s.name;
+  $('#site-menu').hidden = false;
+}
+const closeMenu = () => { $('#site-menu').hidden = true; };
+$('#m-cancel').addEventListener('click', closeMenu);
+$('#site-menu').addEventListener('click', (e) => { if (e.target.id === 'site-menu') closeMenu(); });
+$('#m-open').addEventListener('click', () => { closeMenu(); open(menuSite); });
+// Opens the place directly on "Adicionar câmera" (asks the administrator password if needed).
+$('#m-install').addEventListener('click', () => { closeMenu(); open(menuSite, 'settings', 'camera'); });
+$('#m-edit').addEventListener('click', () => { closeMenu(); edit(menuSite); });
+$('#m-remove').addEventListener('click', () => {
+  closeMenu();
+  if (!confirm(`Remover “${menuSite.name}” deste celular? (nada é apagado no computador de lá)`)) return;
+  sites = sites.filter((x) => x !== menuSite);
+  save();
+  render();
+});
+
+// ---------- Install cameras: find the computer on this Wi-Fi ----------
+const COMMON_NETS = ['192.168.0', '192.168.1', '192.168.100', '192.168.15', '192.168.18', '192.168.2', '192.168.3', '192.168.10', '192.168.31', '192.168.43', '192.168.88', '10.0.0', '10.0.1'];
+let searchId = 0;
+async function findServers() {
+  const id = ++searchId;
+  $('#inst-list').innerHTML = '';
+  $('#inst-none').hidden = true;
+  $('#inst-again').disabled = true;
+  $('#inst-status').textContent = 'Procurando o computador das câmeras neste Wi-Fi… (até 30 segundos)';
+  // Networks of places already saved come first (fastest when it is the same house).
+  const nets = [];
+  for (const s of sites) for (const u of s.urls) {
+    const m = /^http:\/\/((?:192\.168|10)\.\d+\.\d+)\.\d+/.exec(u);
+    if (m && !nets.includes(m[1])) nets.push(m[1]);
+  }
+  for (const n of COMMON_NETS) if (!nets.includes(n)) nets.push(n);
+  const found = new Map();
+  const bar = $('#inst-progress > div');
+  // One network at a time; stop after the network where a computer was found.
+  for (let n = 0; n < nets.length && id === searchId && !found.size; n++) {
+    const hosts = Array.from({ length: 254 }, (_, i) => `http://${nets[n]}.${i + 1}:8080`);
+    const worker = async () => {
+      while (hosts.length && id === searchId) {
+        const url = hosts.shift();
+        const h = await hello(url, 1500);
+        if (h && id === searchId && !found.has(url)) {
+          found.set(url, true);
+          showFound(url, h);
+        }
+      }
+    };
+    await Promise.all(Array.from({ length: 127 }, worker));
+    bar.style.width = `${Math.round(((n + 1) / nets.length) * 100)}%`;
+  }
+  if (id !== searchId) return;
+  bar.style.width = '100%';
+  $('#inst-again').disabled = false;
+  $('#inst-status').textContent = found.size ? 'Toque no computador do local onde vai instalar:' : '';
+  $('#inst-none').hidden = found.size > 0;
+}
+function showFound(url, h) {
+  const b = document.createElement('button');
+  b.className = 'found';
+  const known = sites.find((s) => s.urls.includes(url));
+  b.innerHTML = '<span style="font-size:28px">🖥️</span><span><strong></strong><br><span class="muted small"></span></span>';
+  b.querySelector('strong').textContent = h.name;
+  b.querySelector('.small').textContent = `${url.replace('http://', '')}${known ? ' · já está na sua lista' : ''}`;
+  b.addEventListener('click', () => {
+    let site = known;
+    if (!site) {
+      site = { id: Date.now().toString(36), name: h.name, urls: [url] };
+      sites.push(site);
+      save();
+      render();
+    }
+    closeInstall();
+    open(site, 'settings', 'camera');
+  });
+  $('#inst-list').appendChild(b);
+  $('#inst-status').textContent = 'Toque no computador do local onde vai instalar:';
+}
+function closeInstall() {
+  searchId++;
+  $('#install').hidden = true;
+}
+$('#c-install').addEventListener('click', () => {
+  $('#install').hidden = false;
+  $('#inst-progress > div').style.width = '0';
+  findServers();
+});
+$('#inst-back').addEventListener('click', closeInstall);
+$('#inst-again').addEventListener('click', findServers);
+$('#inst-manual').addEventListener('click', () => { closeInstall(); edit(null); });
+
 // ---------- Manual address (advanced) ----------
 function edit(s) {
   editing = s;
@@ -289,9 +449,10 @@ function edit(s) {
   }
   f.hidden = false;
   $('#add').hidden = true;
+  $('#choices').hidden = true;
   f.scrollIntoView({ behavior: 'smooth' });
 }
-function closeForm() { $('#form').hidden = true; $('#add').hidden = false; }
+function closeForm() { $('#form').hidden = true; $('#add').hidden = false; render(); }
 $('#add').addEventListener('click', () => edit(null));
 $('#cancel').addEventListener('click', closeForm);
 $('#del').addEventListener('click', () => {

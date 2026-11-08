@@ -191,7 +191,8 @@ export function createAuth(dataDir, store) {
       store.save();
       setSession(res, user.id);
       const tab = /^[a-z]+$/.test(String(req.query.tab || '')) ? `&tab=${req.query.tab}` : '';
-      res.redirect(`/?app=1${tab}`);
+      const add = req.query.add === 'camera' ? '&add=camera' : '';
+      res.redirect(`/?app=1${tab}${add}`);
     },
 
     listPeople() {

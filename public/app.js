@@ -392,6 +392,11 @@ let me = { role: 'admin' };
   $('#rec-day').value = today();
   await reloadCameras();
   if (startTab === 'alerts') showTab('alerts');
+  // From the phone app's "Instalar câmera": open the add-camera screen directly.
+  if (startTab === 'settings' && me.role === 'admin') {
+    showTab('settings');
+    if (new URLSearchParams(location.search).get('add') === 'camera') window.openCameraEditor();
+  }
   refreshStatus();
   setInterval(refreshStatus, 30_000);
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
