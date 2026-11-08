@@ -5,7 +5,7 @@ import path from 'node:path';
 const COOKIE = 'cam_session';
 const MAX_AGE_DAYS = 90;
 const PUBLIC = new Set([
-  '/login.html', '/api/login', '/api/auth/state', '/api/setup',
+  '/login.html', '/api/login', '/api/auth/state', '/api/setup', '/api/hello',
   '/style.css', '/icon.svg', '/manifest.webmanifest', '/sw.js',
 ]);
 
@@ -96,7 +96,10 @@ export function createAuth(dataDir, store) {
     middleware(req, res, next) {
       if (PUBLIC.has(req.path) || (!needsSetup() && valid(readCookie(req)))) return next();
       if (req.path.startsWith('/api/')) return res.status(401).json({ error: 'Faça login' });
-      if (req.path === '/' || req.path.endsWith('.html')) return res.redirect('/login.html');
+      if (req.path === '/' || req.path.endsWith('.html')) {
+        const q = req.originalUrl.indexOf('?');
+        return res.redirect(`/login.html${q >= 0 ? req.originalUrl.slice(q) : ''}`);
+      }
       res.status(401).end();
     },
   };

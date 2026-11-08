@@ -21,6 +21,7 @@
   </form>
   <script>
     let setup = false;
+    try { if (new URLSearchParams(location.search).get('app') === '1') sessionStorage.setItem('inApp', '1'); } catch {}
     const f = document.getElementById('login');
     fetch('/api/auth/state').then((r) => r.json()).then((s) => {
       setup = s.needsSetup;

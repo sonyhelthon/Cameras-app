@@ -11,7 +11,8 @@
 </head>
 <body>
   <header class="top">
-    <h1>Câmeras</h1>
+    <a id="locais" class="chip" href="http://localhost/?locais=1" hidden aria-label="Trocar de local">⇄</a>
+    <h1 id="site-name">Câmeras</h1>
     <nav class="tabs" role="tablist">
       <button role="tab" data-tab="live" aria-selected="true">Ao vivo</button>
       <button role="tab" data-tab="recs" aria-selected="false">Gravações</button>
@@ -37,6 +38,16 @@
 
     <section id="tab-settings" class="tab settings" hidden>
       <div id="tools-warning" class="card warn" hidden></div>
+
+      <div class="card">
+        <h2>Este local</h2>
+        <label class="field">Nome (aparece no app do celular)
+          <input id="site-input" maxlength="30" placeholder="Casa, Igreja…">
+        </label>
+        <button id="site-save" class="btn primary">Salvar</button>
+        <p id="site-msg" class="small"></p>
+        <p class="small muted">Endereço para o app Android (em casa): <strong id="site-addr"></strong></p>
+      </div>
 
       <div class="card">
         <div class="card-head">
@@ -111,7 +122,10 @@
       <div id="viewer-msg" class="overlay-msg"></div>
     </div>
     <div class="viewer-foot">
-      <button id="viewer-sound" class="chip">🔇 Som</button>
+      <div class="row">
+        <button id="viewer-sound" class="chip">🔇 Som</button>
+        <button id="viewer-photo" class="chip">📷 Foto</button>
+      </div>
       <div id="ptz" class="ptz">
         <button data-dir="up" aria-label="Cima">▲</button>
         <button data-dir="left" aria-label="Esquerda">◀</button>

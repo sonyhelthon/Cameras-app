@@ -86,6 +86,10 @@ const wrap = (fn) => (req, res) =>
   });
 const bad = (msg) => Object.assign(new Error(msg), { status: 400 });
 
+// Lets the Android app find and identify this server (no private data).
+app.get('/api/hello', (req, res) => {
+  res.set('Access-Control-Allow-Origin', '*').json({ app: 'minhas-cameras', name: store.settings.site.name });
+});
 app.get('/api/auth/state', (req, res) => auth.state(req, res));
 app.post('/api/setup', (req, res) => auth.setup(req, res));
 app.post('/api/login', (req, res) => auth.login(req, res));
@@ -104,6 +108,7 @@ app.get('/api/cameras', (req, res) => {
 
 app.get('/api/status', (req, res) => {
   res.json({
+    site: store.settings.site.name,
     drive: drive.status(),
     recordingEnabled: store.settings.recording.enabled,
     tools: tools.status,
@@ -229,13 +234,22 @@ app.get('/api/admin/discover', wrap(async (req, res) => {
 
 // ---------- Settings ----------
 app.get('/api/settings', (req, res) => {
-  res.json({ settings: store.settings, drive: drive.status(), tools: tools.status, toolErrors: tools.errors, platform: process.platform });
+  const addresses = Object.values(os.networkInterfaces())
+    .flat()
+    .filter((i) => i && i.family === 'IPv4' && !i.internal && /^(192\.168|10\.|100\.)/.test(i.address))
+    .map((i) => `${i.address}${base.port === 80 ? '' : `:${base.port}`}`);
+  res.json({ settings: store.settings, drive: drive.status(), tools: tools.status, toolErrors: tools.errors, platform: process.platform, addresses });
 });
 
 app.put('/api/settings', (req, res) => {
   const b = req.body || {};
   const s = store.settings;
   const patch = {};
+  if (b.site?.name !== undefined) {
+    const n = String(b.site.name).trim().slice(0, 30);
+    if (!n) throw bad('Dê um nome para este local (ex.: Casa).');
+    patch.site = { name: n };
+  }
   if (b.recording) {
     patch.recording = {};
     if (b.recording.enabled !== undefined) patch.recording.enabled = !!b.recording.enabled;

@@ -25,7 +25,7 @@ button { cursor: pointer; }
   border-bottom: 1px solid var(--line);
 }
 .top h1 { font-size: 17px; margin: 0; }
-@media (max-width: 420px) { .top h1 { display: none; } }
+
 .tabs { display: flex; gap: 4px; background: var(--panel); border-radius: 10px; padding: 3px; }
 .tabs button { border: 0; background: none; padding: 6px 12px; white-space: nowrap; border-radius: 8px; color: var(--muted); }
 .tabs button[aria-selected="true"] { background: var(--line); color: var(--text); }
@@ -169,3 +169,21 @@ html, body { overflow-x: hidden; }
 .help { background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
 .help summary { color: var(--text); }
 .help ol { margin: 8px 0 4px; padding-left: 20px; display: grid; gap: 6px; }
+
+/* Header on phones: place name + ⇄ on the first line, tabs below */
+.top a.chip { text-decoration: none; color: var(--text); }
+@media (max-width: 520px) {
+  .top { flex-wrap: wrap; }
+  .top h1 { font-size: 16px; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tabs { flex-basis: 100%; order: 3; }
+}
+
+/* Viewer: zoom and landscape */
+.viewer-body { overflow: hidden; touch-action: none; }
+.viewer-body video { transform-origin: center center; will-change: transform; }
+.viewer-foot .row { display: flex; gap: 8px; }
+@media (orientation: landscape) and (max-height: 560px) {
+  .viewer-head { position: absolute; top: 0; left: 0; right: 0; z-index: 2; background: linear-gradient(rgba(0,0,0,.6), transparent); }
+  .viewer-foot { position: absolute; bottom: 0; left: 0; right: 0; z-index: 2; background: linear-gradient(transparent, rgba(0,0,0,.6)); align-items: flex-end; }
+  .ptz { grid-template-columns: repeat(3, 44px); grid-template-rows: repeat(3, 44px); opacity: .85; }
+}

@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0f1115">
+  <title>Minhas Câmeras</title>
+  <style>
+    :root { --bg:#0f1115; --panel:#181b22; --line:#262a33; --text:#e8eaf0; --muted:#8b91a0; --accent:#4f8cff; --ok:#34c77b; --bad:#ff5c5c; color-scheme: dark; }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.4 system-ui, Roboto, sans-serif; }
+    button, input { font: inherit; color: inherit; }
+    header { padding: max(16px, env(safe-area-inset-top)) 16px 8px; display: flex; align-items: center; gap: 12px; }
+    header img { width: 36px; height: 36px; }
+    h1 { font-size: 20px; margin: 0; }
+    main { padding: 8px 16px 32px; display: grid; gap: 10px; max-width: 560px; margin: 0 auto; }
+    .muted { color: var(--muted); }
+    .small { font-size: 13px; }
+    .site { display: flex; align-items: center; gap: 12px; padding: 16px; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; }
+    .site .grow { flex: 1; min-width: 0; cursor: pointer; }
+    .site strong { font-size: 17px; display: block; }
+    .site .addr { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--muted); flex: none; }
+    .dot.on { background: var(--ok); } .dot.off { background: var(--bad); }
+    .btn { background: var(--line); border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; cursor: pointer; }
+    .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+    .btn.danger { background: none; border-color: var(--bad); color: var(--bad); }
+    .icon-btn { background: none; border: 0; color: var(--muted); font-size: 20px; padding: 6px; cursor: pointer; }
+    .empty { text-align: center; padding: 32px 8px; color: var(--muted); display: grid; gap: 12px; }
+    form { display: grid; gap: 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 16px; }
+    label { display: grid; gap: 6px; font-size: 13px; color: var(--muted); }
+    input { background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 12px; font-size: 16px; }
+    .row { display: flex; gap: 8px; flex-wrap: wrap; }
+    .row .primary { margin-left: auto; }
+    .msg { font-size: 14px; margin: 0; min-height: 1.2em; }
+    .msg.ok { color: var(--ok); } .msg.bad { color: var(--bad); }
+    .opening { position: fixed; inset: 0; background: var(--bg); display: grid; place-items: center; text-align: center; padding: 24px; }
+    [hidden] { display: none !important; }
+  </style>
+</head>
+<body>
+  <header>
+    <img src="icon.svg" alt="">
+    <h1>Minhas Câmeras</h1>
+  </header>
+  <main>
+    <div id="list"></div>
+    <button id="add" class="btn primary">+ Adicionar local</button>
+
+    <form id="form" hidden>
+      <strong id="form-title">Novo local</strong>
+      <label>Nome do local <input name="name" placeholder="Casa, Igreja…" maxlength="30" required></label>
+      <label>Endereço em casa (mesmo Wi-Fi)
+        <input name="lan" placeholder="192.168.100.47" inputmode="url" autocapitalize="off" autocorrect="off">
+      </label>
+      <label>Endereço de fora (Tailscale), opcional
+        <input name="remote" placeholder="100.x.x.x ou nome.ts.net" inputmode="url" autocapitalize="off" autocorrect="off">
+      </label>
+      <p class="small muted">O endereço aparece na janela preta do computador servidor (“No celular…”).</p>
+      <p id="form-msg" class="msg"></p>
+      <div class="row">
+        <button type="button" id="del" class="btn danger" hidden>Remover</button>
+        <button type="button" id="cancel" class="btn">Cancelar</button>
+        <button type="button" id="test" class="btn">Testar</button>
+        <button type="submit" class="btn primary">Salvar</button>
+      </div>
+    </form>
+  </main>
+
+  <div id="opening" class="opening" hidden>
+    <div>
+      <p id="opening-msg">Conectando…</p>
+      <button id="opening-cancel" class="btn">Voltar</button>
+    </div>
+  </div>
+
+<script>
+'use strict';
+const $ = (s) => document.querySelector(s);
+const KEY = 'locais';
+const load = () => { try { return JSON.parse(localStorage.getItem(KEY)) || []; } catch { return []; } };
+const save = (l) => localStorage.setItem(KEY, JSON.stringify(l));
+let sites = load();
+let editing = null;
+let cancelOpen = false;
+
+/** "192.168.0.5" -> "http://192.168.0.5:8080"; keeps https:// and explicit ports. */
+function normalize(a) {
+  a = String(a || '').trim().replace(/\/+$/, '');
+  if (!a) return '';
+  if (!/^https?:\/\//i.test(a)) a = (/\.ts\.net$/i.test(a.split('/')[0]) ? 'https://' : 'http://') + a;
+  try {
+    const u = new URL(a);
+    if (!u.port && u.protocol === 'http:') u.port = '8080';
+    return u.origin;
+  } catch { return ''; }
+}
+
+/** Checks a server; resolves with its name or null. */
+async function hello(url, ms = 3000) {
+  if (!url) return null;
+  const ctl = new AbortController();
+  const t = setTimeout(() => ctl.abort(), ms);
+  try {
+    const r = await fetch(`${url}/api/hello`, { signal: ctl.signal, cache: 'no-store' });
+    const j = await r.json();
+    return j.app === 'minhas-cameras' ? j : null;
+  } catch { return null; } finally { clearTimeout(t); }
+}
+
+function render() {
+  const list = $('#list');
+  list.innerHTML = '';
+  if (!sites.length) {
+    list.innerHTML = '<div class="empty"><p>Nenhum local ainda.</p><p class="small">Adicione o computador servidor da sua casa (e depois da igreja, ou de qualquer outro lugar).</p></div>';
+    return;
+  }
+  for (const s of sites) {
+    const el = document.createElement('div');
+    el.className = 'site';
+    el.innerHTML = '<span class="dot"></span><div class="grow"><strong></strong><div class="small muted addr"></div></div><button class="icon-btn" aria-label="Editar">✎</button>';
+    el.querySelector('strong').textContent = s.name;
+    el.querySelector('.addr').textContent = [s.lan, s.remote].filter(Boolean).join(' · ').replace(/https?:\/\//g, '');
+    el.querySelector('.grow').addEventListener('click', () => open(s));
+    el.querySelector('.icon-btn').addEventListener('click', () => edit(s));
+    list.appendChild(el);
+    // Online status (home address or Tailscale)
+    Promise.all([hello(s.lan), hello(s.remote)]).then(([a, b]) => el.querySelector('.dot').classList.add(a || b ? 'on' : 'off'));
+  }
+}
+
+async function open(s) {
+  cancelOpen = false;
+  $('#opening').hidden = false;
+  $('#opening-msg').textContent = `Conectando em ${s.name}…`;
+  // At home the local address answers first; away, the Tailscale one.
+  const [a, b] = await Promise.all([hello(s.lan), hello(s.remote, 5000)]);
+  if (cancelOpen) return;
+  const url = a ? s.lan : b ? s.remote : null;
+  if (!url) {
+    $('#opening-msg').textContent = `Não consegui falar com ${s.name}. O computador servidor está ligado? Se você está fora de casa, o Tailscale está ativo no celular?`;
+    return;
+  }
+  localStorage.setItem('ultimo', s.id);
+  location.href = `${url}/?app=1`;
+}
+$('#opening-cancel').addEventListener('click', () => { cancelOpen = true; $('#opening').hidden = true; });
+
+function edit(s) {
+  editing = s;
+  const f = $('#form');
+  f.reset();
+  $('#form-title').textContent = s ? `Editar ${s.name}` : 'Novo local';
+  $('#del').hidden = !s;
+  $('#form-msg').textContent = '';
+  if (s) { f.name.value = s.name; f.lan.value = s.lan.replace(/^http:\/\//, '').replace(/:8080$/, ''); f.remote.value = (s.remote || '').replace(/^http:\/\//, '').replace(/:8080$/, ''); }
+  f.hidden = false;
+  $('#add').hidden = true;
+  f.name.focus();
+}
+function closeForm() { $('#form').hidden = true; $('#add').hidden = false; }
+
+$('#add').addEventListener('click', () => edit(null));
+$('#cancel').addEventListener('click', closeForm);
+$('#del').addEventListener('click', () => {
+  if (!editing || !confirm(`Remover “${editing.name}” da lista? (nada é apagado no servidor)`)) return;
+  sites = sites.filter((x) => x !== editing); save(sites); closeForm(); render();
+});
+$('#test').addEventListener('click', async () => {
+  const f = $('#form'); const m = $('#form-msg');
+  m.className = 'msg'; m.textContent = 'Testando…';
+  const lan = normalize(f.lan.value), remote = normalize(f.remote.value);
+  const [a, b] = await Promise.all([hello(lan), hello(remote, 5000)]);
+  const parts = [];
+  if (lan) parts.push(a ? `Em casa: OK (${a.name})` : 'Em casa: sem resposta');
+  if (remote) parts.push(b ? `De fora: OK (${b.name})` : 'De fora: sem resposta');
+  m.className = `msg ${a || b ? 'ok' : 'bad'}`;
+  m.textContent = parts.join(' · ') || 'Informe pelo menos um endereço.';
+  if ((a || b) && !f.name.value) f.name.value = (a || b).name;
+});
+$('#form').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const f = e.target;
+  const lan = normalize(f.lan.value), remote = normalize(f.remote.value);
+  if (!lan && !remote) { $('#form-msg').className = 'msg bad'; $('#form-msg').textContent = 'Informe pelo menos um endereço.'; return; }
+  const data = { name: f.name.value.trim(), lan, remote };
+  if (editing) Object.assign(editing, data); else sites.push({ id: Date.now().toString(36), ...data });
+  save(sites); closeForm(); render();
+});
+
+render();
+// Opens straight into the last place used (unless coming back from it with "Locais").
+const params = new URLSearchParams(location.search);
+const last = sites.find((s) => s.id === localStorage.getItem('ultimo'));
+if (!params.has('locais') && last) open(last);
+</script>
+</body>
+</html>

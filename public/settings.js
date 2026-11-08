@@ -190,7 +190,9 @@
 
   // ---------- Settings ----------
   async function loadSettings() {
-    const { settings: s, drive, tools, toolErrors } = await api('/api/settings');
+    const { settings: s, drive, tools, toolErrors, addresses } = await api('/api/settings');
+    $('#site-input').value = s.site.name;
+    $('#site-addr').textContent = (addresses || []).join('  ou  ') || location.host;
     $('#drive-folder').value = s.drive.folder;
     $('#drive-days').value = s.drive.retentionDays;
     $('#drive-enabled').checked = s.drive.enabled;
@@ -239,6 +241,9 @@
     }
   }
 
+  $('#site-save').addEventListener('click', () =>
+    saveSettings({ site: { name: $('#site-input').value } }, $('#site-msg')).then(() => (document.querySelector('#site-name').textContent = $('#site-input').value.trim())),
+  );
   $('#drive-save').addEventListener('click', () =>
     saveSettings({ drive: { folder: $('#drive-folder').value, retentionDays: Number($('#drive-days').value), enabled: $('#drive-enabled').checked } }, $('#drive-msg')),
   );

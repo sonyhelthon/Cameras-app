@@ -1,0 +1,13 @@
+{
+  "appId": "com.sonyhelthon.minhascameras",
+  "appName": "Minhas Câmeras",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "http",
+    "cleartext": true,
+    "allowNavigation": ["*"]
+  },
+  "android": {
+    "allowMixedContent": true
+  }
+}

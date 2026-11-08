@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 export const DEFAULT_SETTINGS = {
+  site: { name: 'Casa' },
   recording: { enabled: true, stream: 'main', segmentMinutes: 10, audio: true },
   local: { retentionHours: 48 },
   drive: { enabled: false, remoteName: 'gdrive', folder: 'Cameras', retentionDays: 45, uploadEveryMinutes: 5, bwlimit: '' },

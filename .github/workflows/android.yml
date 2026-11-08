@@ -1,0 +1,62 @@
+name: App Android
+
+# Builds the Android app (APK) and publishes it at:
+# https://github.com/sonyhelthon/cameras-app/releases/tag/app-android
+on:
+  push:
+    branches: [main]
+    paths: ['mobile/**', '.github/workflows/android.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Gerar projeto Android
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+        run: |
+          npm ci
+          npx cap add android
+          node scripts/patch-android.mjs
+          npx capacitor-assets generate --android
+          npx cap sync android
+
+      - name: Compilar APK
+        working-directory: mobile/android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon
+        env:
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          cp app/build/outputs/apk/debug/app-debug.apk ../MinhasCameras.apk
+
+      - name: Publicar
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: app-android
+          name: App Android
+          make_latest: true
+          files: mobile/MinhasCameras.apk
+          body: |
+            Baixe **MinhasCameras.apk** abaixo pelo celular Android e instale
+            (permita "instalar apps desconhecidos" para o navegador quando pedir).
+            Versão gerada a partir do commit ${{ github.sha }}.
