@@ -21,6 +21,14 @@ export function loadConfig(file = process.env.CONFIG || 'config.yaml') {
     drive: { enabled: false, remote: 'gdrive:Cameras', uploadEveryMinutes: 5, retentionDays: 45, bwlimit: '', ...raw.drive },
   };
 
+  // On Windows, use the programs installed by iniciar.bat in C:\cameras\bin when only the name is given.
+  if (process.platform === 'win32') {
+    for (const tool of ['ffmpeg', 'rclone']) {
+      const local = `C:/cameras/bin/${tool}.exe`;
+      if (!/[\\/]/.test(cfg.bin[tool]) && fs.existsSync(local)) cfg.bin[tool] = local;
+    }
+  }
+
   const defaults = { user: 'admin', rtspPort: 554, mainPath: '/onvif1', subPath: '/onvif2', onvifPort: 5000, ptz: true, ...raw.defaults };
   const seen = new Set();
   cfg.cameras = (raw.cameras || []).map((c) => {

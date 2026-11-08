@@ -6,6 +6,15 @@ if not exist config.yaml (
   pause
   exit /b 1
 )
+if not exist C:\cameras\bin\ffmpeg.exe (
+  echo Instalando ffmpeg e rclone em C:\cameras\bin ...
+  powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\instalar-programas.ps1"
+  if errorlevel 1 (
+    echo Nao foi possivel baixar os programas. Verifique a internet e tente de novo.
+    pause
+    exit /b 1
+  )
+)
 if not exist node_modules call npm install
 :loop
 node src\server.js

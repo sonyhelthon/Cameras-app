@@ -33,12 +33,9 @@ O padrão é guardar **45 dias** no Drive (`drive.retentionDays`).
 ### 1. Programas (uma vez só)
 
 1. **Node.js LTS:** baixe em nodejs.org e instale.
-2. **ffmpeg:** baixe em gyan.dev/ffmpeg/builds ("ffmpeg-release-essentials.zip"). Extraia e copie o `ffmpeg.exe` da pasta `bin` para `C:\cameras\bin\`.
-3. **rclone:** baixe em rclone.org/downloads (Windows 64 bits). Extraia e copie o `rclone.exe` para `C:\cameras\bin\`.
-4. Copie esta pasta `cameras` para `C:\cameras\app\`. Abra o **Prompt de Comando** nela e rode:
-   ```
-   npm install
-   ```
+2. Copie esta pasta para o notebook (por exemplo, `C:\cameras\app\`).
+
+O **ffmpeg** e o **rclone** são baixados sozinhos para `C:\cameras\bin\` na primeira vez que você abrir o `iniciar.bat`.
 
 ### 2. Ligar o Google Drive (uma vez só)
 
@@ -71,7 +68,6 @@ rtsp://admin:SENHA@192.168.100.42:554/onvif1
 
 Copie `config.example.yaml` para `config.yaml` e preencha:
 - `server.password`: a senha para entrar no app
-- `bin.ffmpeg: C:/cameras/bin/ffmpeg.exe` e `bin.rclone: C:/cameras/bin/rclone.exe`
 - `cameras`: nome, IP e senha de cada câmera
 
 ### 5. Rodar

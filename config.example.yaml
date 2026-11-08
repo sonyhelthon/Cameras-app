@@ -6,8 +6,8 @@ server:
   # (não recomendado se você usar o acesso de fora de casa).
   password: "troque-esta-senha"
 
-# Programas usados. Se estiverem no PATH, deixe só o nome.
-# No Windows, você pode colocar o caminho completo, ex.: "C:/cameras/bin/ffmpeg.exe"
+# Programas usados. No Windows, o iniciar.bat baixa os dois sozinho para C:\cameras\bin
+# e o app os encontra lá. Deixe como está.
 bin:
   ffmpeg: ffmpeg
   rclone: rclone
