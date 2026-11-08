@@ -53,7 +53,11 @@ function renderGrid() {
   const grid = $('#grid');
   grid.innerHTML = '';
   if (!cameras.length) {
-    grid.innerHTML = '<p class="muted">Nenhuma câmera no config.yaml.</p>';
+    grid.innerHTML = '<div class="empty-state"><p>Nenhuma câmera ainda.</p><button class="btn primary">+ Adicionar câmera</button></div>';
+    grid.querySelector('button').addEventListener('click', () => {
+      showTab('settings');
+      window.openCameraEditor();
+    });
     return;
   }
   for (const cam of cameras) {
@@ -96,7 +100,10 @@ async function refreshStatus() {
     updateBadges();
     const st = await api('/api/status');
     const el = $('#drive-status');
-    if (!st.drive.enabled) {
+    if (st.tools.ffmpeg === 'baixando') {
+      el.textContent = 'Preparando vídeo…';
+      el.className = 'pill';
+    } else if (!st.drive.enabled) {
       el.textContent = 'Drive desligado';
       el.className = 'pill';
     } else if (st.drive.error) {
@@ -208,11 +215,11 @@ function showTab(tab) {
   for (const b of document.querySelectorAll('.tabs button')) b.setAttribute('aria-selected', String(b.dataset.tab === tab));
   $('#tab-live').hidden = tab !== 'live';
   $('#tab-recs').hidden = tab !== 'recs';
+  $('#tab-settings').hidden = tab !== 'settings';
   if (tab === 'live') startGrid();
-  else {
-    stopGrid();
-    loadRecordings();
-  }
+  else stopGrid();
+  if (tab === 'recs') loadRecordings();
+  if (tab === 'settings') window.openSettings().catch((e) => alert(e.message));
 }
 for (const b of document.querySelectorAll('.tabs button')) b.addEventListener('click', () => showTab(b.dataset.tab));
 $('#rec-cam').addEventListener('change', loadRecordings);
@@ -227,13 +234,23 @@ document.addEventListener('visibilitychange', () => {
   else if (currentTab === 'live') startGrid();
 });
 
-// ---------- Init ----------
-(async () => {
+// Reloads the camera list after cameras are added/changed in Ajustes.
+async function reloadCameras() {
+  stopGrid();
   cameras = await api('/api/cameras');
   const sel = $('#rec-cam');
+  const current = sel.value;
+  sel.innerHTML = '';
   for (const c of cameras) sel.add(new Option(c.name, c.id));
-  $('#rec-day').value = today();
+  if (current) sel.value = current;
   renderGrid();
+  if (currentTab !== 'live') stopGrid();
+}
+
+// ---------- Init ----------
+(async () => {
+  $('#rec-day').value = today();
+  await reloadCameras();
   refreshStatus();
   setInterval(refreshStatus, 30_000);
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});

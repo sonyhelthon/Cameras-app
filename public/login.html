@@ -13,17 +13,35 @@
   <form id="login" class="login">
     <img src="/icon.svg" alt="" width="56" height="56">
     <h1>Minhas Câmeras</h1>
+    <p id="intro" class="muted" hidden>Primeiro acesso: crie a senha que vai proteger o app.</p>
     <input type="password" name="password" placeholder="Senha" autocomplete="current-password" required autofocus>
+    <input type="password" name="confirm" placeholder="Repita a senha" autocomplete="new-password" hidden>
     <button type="submit">Entrar</button>
     <p id="err" class="error" role="alert"></p>
   </form>
   <script>
-    document.getElementById('login').addEventListener('submit', async (e) => {
+    let setup = false;
+    const f = document.getElementById('login');
+    fetch('/api/auth/state').then((r) => r.json()).then((s) => {
+      setup = s.needsSetup;
+      if (!setup) return;
+      document.getElementById('intro').hidden = false;
+      f.confirm.hidden = false;
+      f.confirm.required = true;
+      f.password.autocomplete = 'new-password';
+      f.querySelector('button').textContent = 'Criar senha e entrar';
+    });
+    f.addEventListener('submit', async (e) => {
       e.preventDefault();
-      const password = e.target.password.value;
-      const r = await fetch('/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password }) });
+      const err = document.getElementById('err');
+      if (setup && f.password.value !== f.confirm.value) return (err.textContent = 'As senhas não são iguais.');
+      const r = await fetch(setup ? '/api/setup' : '/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: f.password.value }),
+      });
       if (r.ok) location.href = '/';
-      else document.getElementById('err').textContent = (await r.json().catch(() => ({}))).error || 'Erro ao entrar';
+      else err.textContent = (await r.json().catch(() => ({}))).error || 'Erro ao entrar';
     });
   </script>
 </body>

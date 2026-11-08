@@ -1,7 +1,7 @@
 // Minimal service worker: makes the app installable on Android and caches the app shell.
 // Video, API and recordings always go to the network.
-const CACHE = 'cameras-v1';
-const SHELL = ['/', '/index.html', '/app.js', '/style.css', '/icon.svg', '/vendor/hls.min.js', '/manifest.webmanifest'];
+const CACHE = 'cameras-v2';
+const SHELL = ['/', '/index.html', '/app.js', '/settings.js', '/style.css', '/icon.svg', '/vendor/hls.min.js', '/manifest.webmanifest'];
 
 self.addEventListener('install', (e) => {
   self.skipWaiting();

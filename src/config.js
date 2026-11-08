@@ -1,57 +1,64 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import YAML from 'yaml';
 
-const ID_RE = /^[a-z0-9_-]+$/i;
+export const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 
-export function loadConfig(file = process.env.CONFIG || 'config.yaml') {
-  if (!fs.existsSync(file)) {
-    console.error(`Arquivo de configuração "${file}" não encontrado. Copie config.example.yaml para config.yaml e ajuste.`);
-    process.exit(1);
+/**
+ * Base settings of the server. Everything else (cameras, Drive, password) is set up in the app.
+ * config.yaml is optional: port, data folder and program paths. An old config.yaml with cameras
+ * is imported once (see importLegacy).
+ */
+export function loadBase(file = process.env.CONFIG || 'config.yaml') {
+  let raw = {};
+  let baseDir = process.cwd();
+  if (fs.existsSync(file)) {
+    raw = YAML.parse(fs.readFileSync(file, 'utf8')) || {};
+    baseDir = path.dirname(path.resolve(file));
   }
-  const raw = YAML.parse(fs.readFileSync(file, 'utf8')) || {};
-  const baseDir = path.dirname(path.resolve(file));
-
-  const cfg = {
-    server: { port: 8080, password: '', ...raw.server },
+  const base = {
+    port: Number(process.env.PORT) || raw.server?.port || 8080,
     bin: { ffmpeg: 'ffmpeg', rclone: 'rclone', ...raw.bin },
     dataDir: path.resolve(baseDir, raw.dataDir || './data'),
-    recording: { enabled: true, segmentMinutes: 10, stream: 'main', audio: true, ...raw.recording },
-    local: { retentionHours: 48, ...raw.local },
-    drive: { enabled: false, remote: 'gdrive:Cameras', uploadEveryMinutes: 5, retentionDays: 45, bwlimit: '', ...raw.drive },
+    legacy: raw,
   };
+  for (const d of ['recordings', 'live']) fs.mkdirSync(path.join(base.dataDir, d), { recursive: true });
+  return base;
+}
 
-  // On Windows, use the programs installed by iniciar.bat in C:\cameras\bin when only the name is given.
-  if (process.platform === 'win32') {
-    for (const tool of ['ffmpeg', 'rclone']) {
-      const local = `C:/cameras/bin/${tool}.exe`;
-      if (!/[\\/]/.test(cfg.bin[tool]) && fs.existsSync(local)) cfg.bin[tool] = local;
-    }
+/** Brings cameras/password/settings from an old config.yaml into the app (only once). */
+export function importLegacy(store, legacy, hashPassword) {
+  if (store.data.imported) return;
+  store.data.imported = true;
+  if (legacy.server?.password && !store.data.passwordHash) store.data.passwordHash = hashPassword(String(legacy.server.password));
+  const d = legacy.defaults || {};
+  for (const c of legacy.cameras || []) {
+    if (!c?.id) continue;
+    store.data.cameras.push({
+      id: store.newCameraId(c.id),
+      name: c.name || c.id,
+      brand: c.main ? 'generic' : 'yoosee',
+      host: c.host,
+      user: c.user ?? d.user,
+      password: c.password,
+      ptz: c.ptz ?? d.ptz,
+      ...(c.main ? { main: c.main, sub: c.sub } : {}),
+      ...(c.inputArgs ? { inputArgs: c.inputArgs } : {}),
+    });
   }
-
-  const defaults = { user: 'admin', rtspPort: 554, mainPath: '/onvif1', subPath: '/onvif2', onvifPort: 5000, ptz: true, ...raw.defaults };
-  const seen = new Set();
-  cfg.cameras = (raw.cameras || []).map((c) => {
-    const cam = { ...defaults, ...c };
-    if (!cam.id || !ID_RE.test(cam.id)) throw new Error(`Câmera com id inválido: "${cam.id}" (use letras, números, - ou _)`);
-    if (seen.has(cam.id)) throw new Error(`Id de câmera repetido: ${cam.id}`);
-    seen.add(cam.id);
-    cam.name ||= cam.id;
-    // Only escape characters that break the URL (passwords like "$abc" are sent as typed).
-    const esc = (v) => String(v).replace(/[@:/?#%\s]/g, (ch) => encodeURIComponent(ch));
-    const auth = cam.password ? `${esc(cam.user)}:${esc(cam.password)}@` : '';
-    cam.main ||= `rtsp://${auth}${cam.host}:${cam.rtspPort}${cam.mainPath}`;
-    cam.sub ||= cam.host ? `rtsp://${auth}${cam.host}:${cam.rtspPort}${cam.subPath}` : cam.main;
-    cam.inputArgs ||= [];
-    if (!cam.host) cam.ptz = false;
-    return cam;
-  });
-
-  for (const d of ['recordings', 'live']) fs.mkdirSync(path.join(cfg.dataDir, d), { recursive: true });
-  return cfg;
+  const s = {};
+  if (legacy.recording) s.recording = legacy.recording;
+  if (legacy.local) s.local = legacy.local;
+  if (legacy.drive) {
+    const [remoteName, ...folder] = String(legacy.drive.remote || 'gdrive:Cameras').split(':');
+    s.drive = { ...legacy.drive, remoteName, folder: folder.join(':') || 'Cameras' };
+    delete s.drive.remote;
+  }
+  store.updateSettings(s);
 }
 
 /** Hides camera passwords in URLs for logging. */
 export function redact(s) {
-  return String(s).replace(/(rtsp:\/\/[^:/@]+:)[^@]*@/g, '$1***@');
+  return String(s).replace(/(rtsp:\/\/[^:/@]*:)[^@]*@/g, '$1***@');
 }

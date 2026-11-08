@@ -9,10 +9,10 @@ const IDLE_MS = 40_000;
  * A single ffmpeg per camera/quality serves all viewers (these cameras accept few connections).
  */
 export class LiveManager {
-  constructor(cfg) {
-    this.cfg = cfg;
+  constructor(ctx) {
+    this.ctx = ctx;
     this.sessions = new Map();
-    this.root = path.join(cfg.dataDir, 'live');
+    this.root = path.join(ctx.dataDir, 'live');
     fs.rmSync(this.root, { recursive: true, force: true });
     fs.mkdirSync(this.root, { recursive: true });
     this.reaper = setInterval(() => this._reap(), 10_000);
@@ -34,7 +34,7 @@ export class LiveManager {
       fs.rmSync(dir, { recursive: true, force: true });
       fs.mkdirSync(dir, { recursive: true });
       const url = q === 'hd' ? cam.main : cam.sub;
-      const sup = new Supervisor(`ao vivo ${key}`, this.cfg.bin.ffmpeg, () => [
+      const sup = new Supervisor(`ao vivo ${key}`, () => this.ctx.ffmpeg(), () => [
         ...inputArgs(cam, url),
         ...liveArgs(),
         '-f', 'hls',
@@ -46,7 +46,7 @@ export class LiveManager {
       ]);
       sup.onShortExit = (args) => flipTransport(cam, args);
       sup.start();
-      s = { sup, dir, last: Date.now() };
+      s = { sup, dir, camId: cam.id, last: Date.now() };
       // Watchdog: restart if ffmpeg is running but no new video arrives for 30s (hung connection).
       s.watch = setInterval(() => {
         if (!sup.running || Date.now() - sup.startedAt < 30_000) return;
@@ -78,15 +78,20 @@ export class LiveManager {
     throw err;
   }
 
+  _end(key, s) {
+    clearInterval(s.watch);
+    s.sup.stop();
+    fs.rmSync(s.dir, { recursive: true, force: true });
+    this.sessions.delete(key);
+  }
+
   _reap() {
-    for (const [key, s] of this.sessions) {
-      if (Date.now() - s.last > IDLE_MS) {
-        clearInterval(s.watch);
-        s.sup.stop();
-        fs.rmSync(s.dir, { recursive: true, force: true });
-        this.sessions.delete(key);
-      }
-    }
+    for (const [key, s] of this.sessions) if (Date.now() - s.last > IDLE_MS) this._end(key, s);
+  }
+
+  /** Stops the live view of a camera that was changed or removed. */
+  stopCam(id) {
+    for (const [key, s] of this.sessions) if (key.startsWith(`${id}-`) && s.camId === id) this._end(key, s);
   }
 
   stopAll() {

@@ -7,11 +7,15 @@ const DIRS = {
   right: { x: 0.5, y: 0 },
 };
 
-/** Pans/tilts the camera through ONVIF (the motor of the JT-8177). */
+/** Pans/tilts cameras with a motor through ONVIF. */
 export class Ptz {
-  constructor(cams) {
-    this.cams = new Map(cams.filter((c) => c.ptz).map((c) => [c.id, c]));
+  constructor(getCam) {
+    this.getCam = getCam;
     this.conns = new Map();
+  }
+
+  forget(id) {
+    this.conns.delete(id);
   }
 
   _connect(cam) {
@@ -19,7 +23,7 @@ export class Ptz {
     const p = new Promise((resolve, reject) => {
       const conn = new onvif.Cam(
         { hostname: cam.host, port: cam.onvifPort, username: cam.user, password: cam.password, timeout: 8000 },
-        (err) => (err ? reject(new Error(`ONVIF: ${err.message}`)) : resolve(conn)),
+        (err) => (err ? reject(new Error(`Não consegui falar com o motor da câmera (ONVIF porta ${cam.onvifPort}): ${err.message}`)) : resolve(conn)),
       );
     });
     p.catch(() => this.conns.delete(cam.id));
@@ -28,8 +32,8 @@ export class Ptz {
   }
 
   async move(camId, dir, ms = 600) {
-    const cam = this.cams.get(camId);
-    if (!cam) throw Object.assign(new Error('Esta câmera não tem controle de giro'), { status: 404 });
+    const cam = this.getCam(camId);
+    if (!cam || !cam.ptz) throw Object.assign(new Error('Esta câmera não tem controle de giro'), { status: 404 });
     const v = DIRS[dir];
     if (!v) throw Object.assign(new Error('Direção inválida'), { status: 400 });
     const conn = await this._connect(cam);

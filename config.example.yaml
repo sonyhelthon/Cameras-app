@@ -1,75 +1,17 @@
-# Copie este arquivo para "config.yaml" e ajuste.
+# OPCIONAL. Não é preciso criar este arquivo: câmeras, Google Drive, gravação e senha
+# são configurados pelo próprio app (aba "Ajustes").
+#
+# Use só se quiser mudar a porta ou a pasta onde ficam os dados:
+# copie para "config.yaml" e ajuste.
 
 server:
   port: 8080
-  # Senha para entrar no app (no celular e no navegador). Deixe vazio para não pedir senha
-  # (não recomendado se você usar o acesso de fora de casa).
-  password: "troque-esta-senha"
 
-# Programas usados. No Windows, o iniciar.bat baixa os dois sozinho para C:\cameras\bin
-# e o app os encontra lá. Deixe como está.
-bin:
-  ffmpeg: ffmpeg
-  rclone: rclone
-
-# Onde ficam os arquivos (gravações recentes e vídeo ao vivo temporário)
+# Onde ficam as gravações recentes e os dados do app
 dataDir: ./data
 
-recording:
-  enabled: true
-  # Duração de cada arquivo de vídeo, em minutos
-  segmentMinutes: 10
-  # "main" = 1080p | "sub" = qualidade menor. As JT-8177 usam H.265, que ocupa pouco espaço.
-  stream: main
-  # Grava o áudio (convertido para AAC)
-  audio: true
-
-# Cópia no notebook. Com o Drive ligado, só apaga do notebook o que já foi enviado.
-local:
-  retentionHours: 48
-
-drive:
-  enabled: true
-  # Nome do "remote" criado no "rclone config" + pasta dentro do Drive
-  remote: "gdrive:Cameras"
-  # Envia os arquivos prontos a cada X minutos
-  uploadEveryMinutes: 5
-  # Apaga do Drive gravações mais antigas que isso (5 TB ≈ 55 dias com 4 câmeras em 1080p)
-  # Em outro local (ex.: igreja), use outra pasta: "gdrive:Cameras-Igreja"
-  retentionDays: 45
-  # Limite de banda de upload (ex.: "8M" = 8 MB/s). Vazio = sem limite.
-  bwlimit: ""
-
-# Padrão das câmeras Yoosee / Jortan:
-#   RTSP: rtsp://admin:SENHA@IP:554/onvif1 (principal) e /onvif2 (secundário)
-#   ONVIF (para girar): porta 5000
-defaults:
-  user: admin
-  rtspPort: 554
-  mainPath: /onvif1
-  subPath: /onvif2
-  onvifPort: 5000
-  ptz: true
-  # Como pedir o vídeo: auto (começa por UDP; se falhar, testa TCP), tcp ou udp
-  transport: auto
-
-cameras:
-  - id: garagem
-    name: Garagem
-    host: 192.168.100.42
-    password: "senha-da-camera"
-  - id: quintal
-    name: Quintal
-    host: 192.168.100.41
-    password: "senha-da-camera"
-  - id: sala
-    name: Sala
-    host: 192.168.100.43
-    password: "senha-da-camera"
-
-# Se alguma câmera usar outro endereço, dá para informar a URL completa:
-#   - id: extra
-#     name: Extra
-#     main: rtsp://admin:senha@192.168.100.50:554/stream1
-#     sub: rtsp://admin:senha@192.168.100.50:554/stream2
-#     ptz: false
+# Caminho dos programas, só se você já tiver instalado em outro lugar.
+# No Windows, o app baixa os dois sozinho na pasta "bin" se não encontrar.
+# bin:
+#   ffmpeg: C:/cameras/bin/ffmpeg.exe
+#   rclone: C:/cameras/bin/rclone.exe

@@ -6,17 +6,17 @@ export const FILE_RE = /^\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}\.mp4$/;
 
 /** Continuous recording: one ffmpeg per camera writing N-minute MP4 files. */
 export class Recorder {
-  constructor(cfg, cam) {
-    this.cfg = cfg;
+  constructor(ctx, cam) {
     this.cam = cam;
-    this.dir = path.join(cfg.dataDir, 'recordings', cam.id);
+    this.dir = path.join(ctx.dataDir, 'recordings', cam.id);
     fs.mkdirSync(this.dir, { recursive: true });
-    const url = cfg.recording.stream === 'sub' ? cam.sub : cam.main;
-    this.sup = new Supervisor(`gravação ${cam.id}`, cfg.bin.ffmpeg, () => [
+    const rec = ctx.settings().recording;
+    const url = rec.stream === 'sub' ? cam.sub : cam.main;
+    this.sup = new Supervisor(`gravação ${cam.id}`, () => ctx.ffmpeg(), () => [
       ...inputArgs(cam, url),
-      ...avArgs(cfg.recording.audio),
+      ...avArgs(rec.audio),
       '-f', 'segment',
-      '-segment_time', String(cfg.recording.segmentMinutes * 60),
+      '-segment_time', String(rec.segmentMinutes * 60),
       '-segment_atclocktime', '1',
       '-reset_timestamps', '1',
       '-strftime', '1',

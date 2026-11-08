@@ -15,6 +15,7 @@
     <nav class="tabs" role="tablist">
       <button role="tab" data-tab="live" aria-selected="true">Ao vivo</button>
       <button role="tab" data-tab="recs" aria-selected="false">Gravações</button>
+      <button role="tab" data-tab="settings" aria-selected="false" aria-label="Ajustes">⚙ Ajustes</button>
     </nav>
     <span id="drive-status" class="pill" title="Google Drive"></span>
   </header>
@@ -32,6 +33,68 @@
       <video id="rec-player" class="rec-player" controls playsinline hidden></video>
       <p id="rec-info" class="muted"></p>
       <ul id="rec-list" class="rec-list"></ul>
+    </section>
+
+    <section id="tab-settings" class="tab settings" hidden>
+      <div id="tools-warning" class="card warn" hidden></div>
+
+      <div class="card">
+        <div class="card-head">
+          <h2>Câmeras</h2>
+          <button id="cam-add" class="btn primary">+ Adicionar câmera</button>
+        </div>
+        <ul id="cam-admin-list" class="admin-list"></ul>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><h2>Google Drive</h2><span id="drive-badge" class="badge"></span></div>
+        <p id="drive-space" class="muted"></p>
+        <div id="drive-connect-box">
+          <p class="muted small">Faça isso <strong>no computador servidor</strong>: o login do Google abre no navegador dele.</p>
+          <button id="drive-connect" class="btn">Conectar conta Google</button>
+          <p id="drive-connect-msg" class="small"></p>
+        </div>
+        <label class="field">Pasta no Drive
+          <input id="drive-folder" placeholder="Cameras/Casa">
+        </label>
+        <label class="field">Apagar do Drive gravações com mais de (dias)
+          <input id="drive-days" type="number" min="1" max="3650">
+        </label>
+        <label class="switch"><input id="drive-enabled" type="checkbox"> Enviar gravações para o Drive</label>
+        <div class="row">
+          <button id="drive-save" class="btn primary">Salvar</button>
+          <button id="drive-upload" class="btn">Enviar agora</button>
+        </div>
+        <p id="drive-msg" class="small"></p>
+      </div>
+
+      <div class="card">
+        <h2>Gravação</h2>
+        <label class="switch"><input id="rec-enabled" type="checkbox"> Gravar 24 horas</label>
+        <label class="field">Qualidade
+          <select id="rec-stream">
+            <option value="main">Alta (1080p)</option>
+            <option value="sub">Econômica (menos espaço e internet)</option>
+          </select>
+        </label>
+        <label class="switch"><input id="rec-audio" type="checkbox"> Gravar áudio</label>
+        <label class="field">Manter no computador por (horas)
+          <input id="local-hours" type="number" min="1" max="1440">
+        </label>
+        <button id="rec-save" class="btn primary">Salvar</button>
+        <p id="rec-msg" class="small"></p>
+      </div>
+
+      <div class="card">
+        <h2>Segurança</h2>
+        <label class="field">Senha atual <input id="pw-current" type="password" autocomplete="current-password"></label>
+        <label class="field">Nova senha <input id="pw-new" type="password" autocomplete="new-password"></label>
+        <div class="row">
+          <button id="pw-save" class="btn">Trocar senha</button>
+          <button id="logout" class="btn">Sair</button>
+        </div>
+        <p id="pw-msg" class="small"></p>
+      </div>
     </section>
   </main>
 
@@ -58,7 +121,55 @@
     </div>
   </dialog>
 
+  <dialog id="cam-editor" class="sheet">
+    <form id="cam-form" method="dialog">
+      <div class="sheet-head">
+        <strong id="cam-editor-title">Adicionar câmera</strong>
+        <button type="button" id="cam-cancel" class="chip" aria-label="Fechar">✕</button>
+      </div>
+      <div class="sheet-body">
+        <div id="discover-box">
+          <button type="button" id="discover" class="btn">🔍 Procurar câmeras na rede</button>
+          <p id="discover-msg" class="small muted"></p>
+          <ul id="discover-list" class="admin-list compact"></ul>
+        </div>
+        <label class="field">Nome <input name="name" placeholder="Ex.: Garagem" maxlength="40" required></label>
+        <label class="field">Marca / app da câmera <select name="brand" id="brand"></select></label>
+        <p id="brand-hint" class="small muted"></p>
+        <div id="fields-std">
+          <label class="field">IP da câmera <input name="host" placeholder="192.168.0.50" inputmode="decimal"></label>
+          <label class="field">Usuário <input name="user" autocomplete="off"></label>
+        </div>
+        <div id="fields-custom" hidden>
+          <label class="field">Endereço RTSP <input name="main" placeholder="rtsp://usuario:senha@192.168.0.50:554/stream1" autocomplete="off"></label>
+          <label class="field">Endereço secundário (opcional, qualidade menor) <input name="sub" autocomplete="off"></label>
+        </div>
+        <label class="field">Senha <input name="password" type="password" autocomplete="new-password" id="cam-password"></label>
+        <label class="switch"><input name="ptz" type="checkbox"> Tem motor (gira pelo app)</label>
+        <details>
+          <summary class="small">Avançado</summary>
+          <label class="field">Porta RTSP <input name="rtspPort" type="number" placeholder="554"></label>
+          <label class="field">Porta ONVIF (motor) <input name="onvifPort" type="number"></label>
+          <label class="field">Conexão
+            <select name="transport">
+              <option value="auto">Automática</option>
+              <option value="udp">UDP</option>
+              <option value="tcp">TCP</option>
+            </select>
+          </label>
+        </details>
+        <div id="test-result" class="test-result" hidden></div>
+      </div>
+      <div class="sheet-foot">
+        <button type="button" id="cam-delete" class="btn danger" hidden>Remover</button>
+        <button type="button" id="cam-test" class="btn">Testar</button>
+        <button type="submit" id="cam-save" class="btn primary">Salvar</button>
+      </div>
+    </form>
+  </dialog>
+
   <script src="/vendor/hls.min.js"></script>
   <script src="/app.js"></script>
+  <script src="/settings.js"></script>
 </body>
 </html>

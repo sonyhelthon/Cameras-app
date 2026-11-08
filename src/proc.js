@@ -27,14 +27,15 @@ export class Supervisor {
     const args = this.argsFn();
     this.lastArgs = args;
     this.startedAt = Date.now();
-    const child = spawn(this.bin, args, { stdio: ['ignore', 'ignore', 'pipe'], windowsHide: true });
+    const bin = typeof this.bin === 'function' ? this.bin() : this.bin;
+    const child = spawn(bin, args, { stdio: ['ignore', 'ignore', 'pipe'], windowsHide: true });
     this.child = child;
     let tail = '';
     child.stderr.on('data', (d) => {
       tail = (tail + d.toString()).slice(-2000);
     });
     child.on('error', (err) => {
-      this.lastError = `Não foi possível iniciar "${this.bin}": ${err.message}`;
+      this.lastError = `Não foi possível iniciar "${bin}": ${err.message}`;
     });
     child.on('close', (code) => {
       if (this.child === child) this.child = null;

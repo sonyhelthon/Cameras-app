@@ -4,11 +4,29 @@ import path from 'node:path';
 
 const COOKIE = 'cam_session';
 const MAX_AGE_DAYS = 90;
-const PUBLIC = new Set(['/login.html', '/api/login', '/style.css', '/icon.svg', '/manifest.webmanifest', '/sw.js']);
+const PUBLIC = new Set([
+  '/login.html', '/api/login', '/api/auth/state', '/api/setup',
+  '/style.css', '/icon.svg', '/manifest.webmanifest', '/sw.js',
+]);
 
-export function createAuth(cfg) {
-  const password = String(cfg.server.password || '');
-  const secretFile = path.join(cfg.dataDir, '.secret');
+export function hashPassword(pw) {
+  const salt = crypto.randomBytes(16).toString('hex');
+  return `scrypt$${salt}$${crypto.scryptSync(String(pw), salt, 32).toString('hex')}`;
+}
+
+function checkPassword(pw, stored) {
+  const [, salt, hash] = String(stored || '').split('$');
+  if (!salt || !hash) return false;
+  const got = crypto.scryptSync(String(pw), salt, 32);
+  const want = Buffer.from(hash, 'hex');
+  return got.length === want.length && crypto.timingSafeEqual(got, want);
+}
+
+/**
+ * Password login. On the first access the app asks to create the password (no config file).
+ */
+export function createAuth(dataDir, store) {
+  const secretFile = path.join(dataDir, '.secret');
   if (!fs.existsSync(secretFile)) fs.writeFileSync(secretFile, crypto.randomBytes(32).toString('hex'));
   const secret = fs.readFileSync(secretFile, 'utf8').trim();
 
@@ -23,28 +41,50 @@ export function createAuth(cfg) {
     const m = new RegExp(`(?:^|;\\s*)${COOKIE}=([^;]+)`).exec(req.headers.cookie || '');
     return m && decodeURIComponent(m[1]);
   };
-
+  const setSession = (res) => {
+    const ts = Date.now();
+    res.cookie(COOKIE, `${ts}.${sign(ts)}`, { httpOnly: true, sameSite: 'lax', maxAge: MAX_AGE_DAYS * 86400_000 });
+  };
+  const needsSetup = () => !store.data.passwordHash;
   const failures = new Map();
 
   return {
-    enabled: !!password,
+    state(req, res) {
+      res.json({ needsSetup: needsSetup() });
+    },
+
+    setup(req, res) {
+      if (!needsSetup()) return res.status(403).json({ error: 'A senha já foi criada.' });
+      const pw = String(req.body?.password || '');
+      if (pw.length < 6) return res.status(400).json({ error: 'Use pelo menos 6 caracteres.' });
+      store.data.passwordHash = hashPassword(pw);
+      store.save();
+      setSession(res);
+      res.json({ ok: true });
+    },
 
     login(req, res) {
+      if (needsSetup()) return res.status(409).json({ error: 'Crie a senha primeiro.' });
       const ip = req.ip;
       const f = failures.get(ip) || { n: 0, until: 0 };
       if (Date.now() < f.until) return res.status(429).json({ error: 'Muitas tentativas. Aguarde um minuto.' });
-      const given = Buffer.from(String(req.body?.password || ''));
-      const want = Buffer.from(password);
-      const ok = given.length === want.length && crypto.timingSafeEqual(given, want);
-      if (!ok) {
+      if (!checkPassword(req.body?.password || '', store.data.passwordHash)) {
         f.n += 1;
         if (f.n >= 5) Object.assign(f, { n: 0, until: Date.now() + 60_000 });
         failures.set(ip, f);
         return res.status(401).json({ error: 'Senha incorreta' });
       }
       failures.delete(ip);
-      const ts = Date.now();
-      res.cookie(COOKIE, `${ts}.${sign(ts)}`, { httpOnly: true, sameSite: 'lax', maxAge: MAX_AGE_DAYS * 86400_000 });
+      setSession(res);
+      res.json({ ok: true });
+    },
+
+    changePassword(req, res) {
+      if (!checkPassword(req.body?.current || '', store.data.passwordHash)) return res.status(401).json({ error: 'Senha atual incorreta' });
+      const pw = String(req.body?.password || '');
+      if (pw.length < 6) return res.status(400).json({ error: 'Use pelo menos 6 caracteres.' });
+      store.data.passwordHash = hashPassword(pw);
+      store.save();
       res.json({ ok: true });
     },
 
@@ -54,7 +94,7 @@ export function createAuth(cfg) {
     },
 
     middleware(req, res, next) {
-      if (!password || PUBLIC.has(req.path) || valid(readCookie(req))) return next();
+      if (PUBLIC.has(req.path) || (!needsSetup() && valid(readCookie(req)))) return next();
       if (req.path.startsWith('/api/')) return res.status(401).json({ error: 'Faça login' });
       if (req.path === '/' || req.path.endsWith('.html')) return res.redirect('/login.html');
       res.status(401).end();
