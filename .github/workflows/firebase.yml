@@ -1,0 +1,32 @@
+name: Firebase (regras e página de convite)
+
+# Publishes the security rules and the invite page (https://shcam-f1c0d.web.app/c/CODE).
+# Needs the repository secret FIREBASE_SERVICE_ACCOUNT (Firebase service account .json).
+on:
+  push:
+    branches: [main]
+    paths: ['firebase/**', '.github/workflows/firebase.yml']
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: firebase
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Publicar regras e página
+        env:
+          SA: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          if [ -z "$SA" ]; then
+            echo "::warning::Falta o secret FIREBASE_SERVICE_ACCOUNT; nada foi publicado."
+            exit 0
+          fi
+          printf '%s' "$SA" > "$RUNNER_TEMP/sa.json"
+          export GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/sa.json"
+          npx --yes firebase-tools@14 deploy --only firestore:rules,hosting --project shcam-f1c0d --non-interactive
