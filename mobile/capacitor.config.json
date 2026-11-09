@@ -5,9 +5,19 @@
   "server": {
     "androidScheme": "http",
     "cleartext": true,
-    "allowNavigation": ["*"]
+    "allowNavigation": [
+      "*"
+    ]
   },
   "android": {
     "allowMixedContent": true
+  },
+  "plugins": {
+    "FirebaseAuthentication": {
+      "skipNativeAuth": true,
+      "providers": [
+        "google.com"
+      ]
+    }
   }
 }

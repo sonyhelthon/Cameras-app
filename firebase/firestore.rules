@@ -34,7 +34,8 @@ service cloud.firestore {
     }
 
     match /sites/{siteId} {
-      allow read: if isMember(siteId) || isDevice(siteId);
+      // Written with resource.data so the app can list "my places" with a query.
+      allow read: if signedIn() && (resource.data.members.get(uid(), '') != '' || resource.data.devices.get(uid(), false) == true);
 
       // A new place: the creator is its only administrator.
       allow create: if signedIn()

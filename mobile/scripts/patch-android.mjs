@@ -8,6 +8,16 @@ let m = fs.readFileSync(manifest, 'utf8');
 if (!m.includes('usesCleartextTraffic')) m = m.replace('<application', '<application\n        android:usesCleartextTraffic="true"');
 // Camera, to scan the invite QR code.
 if (!m.includes('android.permission.CAMERA')) m = m.replace('<application', '<uses-permission android:name="android.permission.CAMERA" />\n    <application');
+// Invite links open the app: minhascameras://convite/CODE
+if (!m.includes('android:scheme="minhascameras"')) {
+  m = m.replace(/(<activity[\s\S]*?android:name="\.MainActivity"[\s\S]*?>)/, `$1
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="minhascameras" android:host="convite" />
+            </intent-filter>`);
+}
 fs.writeFileSync(manifest, m);
 
 const b64 = process.env.ANDROID_KEYSTORE_BASE64;

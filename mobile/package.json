@@ -7,9 +7,13 @@
     "build:android": "npx cap add android && node scripts/patch-android.mjs && npx capacitor-assets generate --android && npx cap sync android"
   },
   "dependencies": {
+    "@capacitor-firebase/authentication": "6.3.1",
     "@capacitor/android": "6.2.3",
+    "@capacitor/app": "6.0.3",
     "@capacitor/core": "6.2.3",
     "@capacitor/push-notifications": "6.0.5",
+    "@capacitor/share": "6.0.3",
+    "firebase": "11.10.0",
     "jsqr": "^1.4.0"
   },
   "devDependencies": {

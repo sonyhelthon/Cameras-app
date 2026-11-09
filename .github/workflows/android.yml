@@ -38,10 +38,12 @@ jobs:
           npm ci
           # Push notifications: only when the Firebase file is in the repository secrets.
           if [ -n "$GOOGLE_SERVICES_JSON" ]; then
-            printf 'window.PUSH_ENABLED = true;\n' > www/build-config.js
-            echo "Notificações push: ativadas"
+            printf 'window.PUSH_ENABLED = true;\nwindow.GOOGLE_ENABLED = true;\n' > www/build-config.js
+            echo "Firebase (notificações e login com Google): ativado"
           else
-            echo "Notificações push: desativadas (falta o secret GOOGLE_SERVICES_JSON)"
+            # Without the Firebase file the native Google login plugin would crash the app.
+            npm uninstall --no-save @capacitor-firebase/authentication
+            echo "Firebase: desativado (falta o secret GOOGLE_SERVICES_JSON)"
           fi
           npx cap add android
           if [ -n "$GOOGLE_SERVICES_JSON" ]; then printf '%s' "$GOOGLE_SERVICES_JSON" > android/app/google-services.json; fi

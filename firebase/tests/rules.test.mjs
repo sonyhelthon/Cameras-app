@@ -1,6 +1,6 @@
 import { initializeTestEnvironment, assertSucceeds, assertFails } from '@firebase/rules-unit-testing';
 import { readFileSync } from 'node:fs';
-import { setLogLevel, doc, setDoc, getDoc, updateDoc, writeBatch, Timestamp, deleteField, collection, addDoc, getDocs } from 'firebase/firestore';
+import { setLogLevel, doc, setDoc, getDoc, updateDoc, writeBatch, Timestamp, deleteField, collection, addDoc, getDocs, query, where } from 'firebase/firestore';
 
 setLogLevel('silent');
 const env = await initializeTestEnvironment({ projectId: 'demo-cameras', firestore: { rules: readFileSync(new URL('../firestore.rules', import.meta.url), 'utf8'), host: '127.0.0.1', port: 8085 } });
@@ -29,6 +29,8 @@ const accept = (who, code, role) => { const d = db(who); const b = writeBatch(d)
 await t('pai NÃO consegue aceitar virando admin (convite é "Só ver")', assertFails(accept('pai', 'K7P2Q9', 'admin')));
 await t('pai aceita como "Só ver"', assertSucceeds(accept('pai', 'K7P2Q9', 'viewer')));
 await t('pai agora vê a Casa', assertSucceeds(getDoc(doc(pai, 'sites/casa'))));
+await t('pai lista "meus locais" e encontra a Casa', assertSucceeds(getDocs(query(collection(pai, 'sites'), where('members.pai', 'in', ['admin', 'viewer']))).then((s) => { if (s.size !== 1) throw new Error(`achou ${s.size}`); })));
+await t('estranho não lista locais dos outros', assertFails(getDocs(collection(estranho, 'sites'))));
 await t('link repassado: estranho não consegue usar o mesmo convite', assertFails(accept('estranho', 'K7P2Q9', 'viewer')));
 await t('pai (Só ver) não consegue se promover a admin', assertFails(updateDoc(doc(pai, 'sites/casa'), { 'members.pai': 'admin' })));
 await setDoc(doc(sony, 'invites/VELHO'), { siteId: 'casa', siteName: 'Casa', role: 'viewer', by: 'sony', usedBy: null, expiresAt: Timestamp.fromMillis(Date.now() + 1000) });
